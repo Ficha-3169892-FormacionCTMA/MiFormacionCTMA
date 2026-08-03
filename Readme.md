@@ -63,8 +63,9 @@ com.example.miformacionctma/
 │   └── theme/                 # Configuración del tema Material 3
 └── MainActivity.kt            # Punto de entrada de la UI en Jetpack Compose
 ```
-5. Decisiones de Diseño y Calidad Kotlin (Semana 2)
-Inmutabilidad (val vs var):
+## 5. Decisiones de Diseño y Calidad Kotlin (Semana 2)
+
+## Inmutabilidad (val vs var):
 
 Se prefirió val en todas las propiedades del modelo ActividadFormativa y en el estado de la UI.
 
@@ -82,7 +83,7 @@ Las reglas de validación, filtros de urgencia, ordenamiento y promedios se enca
 
 Justificación: La interfaz @Composable solo muestra datos precalculados. La lógica no está duplicada en la UI, garantizando mantenibilidad, reutilización y facilidad para realizar pruebas unitarias.
 
-6. Reglas de Negocio Implementadas (ReglasActividad)
+## 6. Reglas de Negocio Implementadas (ReglasActividad)
 Validación de Actividades: Devuelve la lista completa de errores (título en blanco, progreso fuera del rango 0..100).
 
 Cálculo de Estado: Asigna el estado dinámicamente (COMPLETADA si progreso es 100%, VENCIDA si días restantes < 0, EN_PROCESO o PENDIENTE).
@@ -95,7 +96,7 @@ Búsqueda e Inspección: Búsqueda flexible por título ignorando espacios en bl
 
 Ordenamiento Priorizado: Ordena colocando vencidas primero, luego prioridad alta y finalmente menor número de días restantes.
 
-7. Forma de Ejecución
+## 7. Forma de Ejecución
 Clonar el repositorio localmente:
 
 Bash
