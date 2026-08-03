@@ -114,7 +114,7 @@ Presionar Run 'app' (Shift + F10) para visualizar la pantalla inicial con el res
 
 ### Comandos Git para guardar el README en GitHub
 
-Una vez que reemplaces el texto en tu archivo `Readme.md` de Android Studio, ejecuta estos comandos en la terminal[cite: 1]:
+Una vez que reemplaces el texto en tu archivo `Readme.md` de Android Studio, ejecuta estos comandos en la terminal:
 
 ```powershell
 git add Readme.md
