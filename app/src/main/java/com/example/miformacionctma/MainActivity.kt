@@ -1,87 +1,109 @@
+@file:Suppress("SpellCheckingInspection")
+
 package com.example.miformacionctma
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.example.miformacionctma.domain.*
+import androidx.activity.enableEdgeToEdge
+import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.ui.screens.PantallaActividades
 import com.example.miformacionctma.ui.theme.MiFormacionCTMATheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MiFormacionCTMATheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    // Datos de prueba (Mocks de dominio)
-                    val listaActividades = listOf(
-                        ActividadFormativa(1, "Configuración Git", "Semana 1", 100, 0, Prioridad.ALTA),
-                        ActividadFormativa(2, "Fundamentos Kotlin", "Semana 2", 60, 2, Prioridad.ALTA),
-                        ActividadFormativa(3, "Diseño de Interfaces", "Semana 3", 0, -1, Prioridad.MEDIA)
-                    )
+        enableEdgeToEdge()
 
-                    // Cálculos usando las reglas del dominio
-                    val promedio = ReglasActividad.promedioProgreso(listaActividades)
-                    val urgentes = ReglasActividad.actividadesUrgentes(listaActividades)
-
-                    PantallaInicio(
-                        nombre = "Aprendiz",
-                        promedioTexto = "Promedio de Avance: %.1f%%".format(promedio),
-                        urgentesTexto = "Actividades urgentes/pendientes: ${urgentes.size}"
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PantallaInicio(
-    nombre: String,
-    promedioTexto: String,
-    urgentesTexto: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.Start
-    ) {
-        Text(
-            text = "Mi Formación CTMA",
-            style = MaterialTheme.typography.headlineMedium
+        val listaActividadesFicticias = listOf(
+            ActividadFormativa(
+                id = 1,
+                titulo = "Diseño de Caso de Uso y Diagrama de Clases",
+                descripcion = "Modelado de diagramas UML para la fase de análisis.",
+                progreso = 100,
+                prioridad = Prioridad.ALTA,
+                diasRestantes = 0
+            ),
+            ActividadFormativa(
+                id = 2,
+                titulo = "Construcción de API con FastAPI y SQLAlchemy",
+                descripcion = "Desarrollo de endpoints de productos y autenticación.",
+                progreso = 60,
+                prioridad = Prioridad.ALTA,
+                diasRestantes = 3
+            ),
+            ActividadFormativa(
+                id = 3,
+                titulo = "Interfaz Declarativa con Jetpack Compose",
+                descripcion = "Construcción de componentes accesibles e interfaces adaptables.",
+                progreso = 30,
+                prioridad = Prioridad.MEDIA,
+                diasRestantes = 5
+            ),
+            ActividadFormativa(
+                id = 4,
+                titulo = "Configuración de Contenedores con Docker",
+                descripcion = "Containerización y despliegue de microservicios.",
+                progreso = 0,
+                prioridad = Prioridad.BAJA,
+                diasRestantes = 10
+            ),
+            ActividadFormativa(
+                id = 5,
+                titulo = "Diseño de Base de Datos Relacional",
+                descripcion = "Normalización y creación de modelos ER en PostgreSQL.",
+                progreso = 85,
+                prioridad = Prioridad.ALTA,
+                diasRestantes = 2
+            ),
+            ActividadFormativa(
+                id = 6,
+                titulo = "Implementación de Seguridad con JWT",
+                descripcion = "Protección de rutas de API mediante tokens de autorización.",
+                progreso = 45,
+                prioridad = Prioridad.ALTA,
+                diasRestantes = 4
+            ),
+            ActividadFormativa(
+                id = 7,
+                titulo = "Pruebas Unitarias e Integración",
+                descripcion = "Cobertura de pruebas automatizadas para servicios backend.",
+                progreso = 20,
+                prioridad = Prioridad.MEDIA,
+                diasRestantes = 7
+            ),
+            ActividadFormativa(
+                id = 8,
+                titulo = "Integración Continua con GitHub Actions",
+                descripcion = "Configuración de flujos automatizados de compilación.",
+                progreso = 10,
+                prioridad = Prioridad.MEDIA,
+                diasRestantes = 8
+            ),
+            ActividadFormativa(
+                id = 9,
+                titulo = "Documentación Técnica de API con OpenAPI",
+                descripcion = "Generación y estructuración de especificaciones Swagger.",
+                progreso = 50,
+                prioridad = Prioridad.BAJA,
+                diasRestantes = 12
+            ),
+            ActividadFormativa(
+                id = 10,
+                titulo = "Arquitectura en Capas con Spring Boot",
+                descripcion = "Estructuración modular de la lógica de negocio y persistencia.",
+                progreso = 15,
+                prioridad = Prioridad.ALTA,
+                diasRestantes = 15
+            )
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = "Hola, $nombre")
-        Text(text = "Resumen del núcleo de dominio (Semana 2):")
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Tarjeta de resumen con datos procesados por ReglasActividad
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = promedioTexto,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = urgentesTexto,
-                    style = MaterialTheme.typography.bodyMedium
+        setContent {
+            MiFormacionCTMATheme {
+                PantallaActividades(
+                    actividades = listaActividadesFicticias,
+                    onActividadClick = {}
                 )
             }
         }
