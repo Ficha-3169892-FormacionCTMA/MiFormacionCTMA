@@ -48,6 +48,7 @@ fun TarjetaActividad(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // CABECERA: Etiqueta de Semana/Módulo + Badge de Prioridad
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
