@@ -1,8 +1,9 @@
 package com.example.miformacionctma.domain
 
 enum class EstadoActividad {
+
     PENDIENTE,
-    EN_PROCESO,
+    EN_PROGRESO,
     COMPLETADA,
     VENCIDA
 }
