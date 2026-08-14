@@ -1,10 +1,10 @@
-﻿# Mi Formación CTMA 📱
+﻿# Mi Formación CTMA 
 
 Aplicación móvil nativa para Android desarrollada con **Jetpack Compose** y **Kotlin**, diseñada para gestionar, listar y supervisar el progreso de actividades formativas y de aprendizaje.
 
 ---
 
-## 🚀 Características Principales
+## Características Principales
 
 * **Interfaz Moderna con Jetpack Compose:** Diseño declarativo que incluye barras superiores (TopAppBar), contenedores de tarjetas (Card), indicadores de progreso lineales y *Chips* informativos.
 * **Capa de Dominio y Lógica de Negocio (domain):**
@@ -17,7 +17,7 @@ Aplicación móvil nativa para Android desarrollada con **Jetpack Compose** y **
 
 ---
 
-## 🛠️ Tecnologías y Arquitectura
+## Tecnologías y Arquitectura
 
 * **Lenguaje:** Kotlin
 * **UI Toolkit:** Jetpack Compose & Material Design 3
@@ -26,7 +26,7 @@ Aplicación móvil nativa para Android desarrollada con **Jetpack Compose** y **
 
 ---
 
-## 📋 Listado de Actividades Integradas
+## Listado de Actividades Integradas
 
 1. **Guía 05 - Persistencia de datos** (En Progreso)
 2. **Pruebas de Desempeño** (En Progreso)
@@ -41,7 +41,7 @@ Aplicación móvil nativa para Android desarrollada con **Jetpack Compose** y **
 
 ---
 
-## 🧪 Pruebas Unitarias
+## Pruebas Unitarias
 
 Las reglas de negocio de ReglasActividad cuentan con pruebas unitarias enfocadas en:
 * Validación de títulos vacíos y rangos de progreso válidos (0 a 100).
@@ -49,7 +49,7 @@ Las reglas de negocio de ReglasActividad cuentan con pruebas unitarias enfocadas
 
 ---
 
-## 📦 Control de Versiones (Git Workflow)
+## Control de Versiones (Git Workflow)
 
 * **Rama de trabajo:** eat/Thomas
 * **Rama de integración:** develop
