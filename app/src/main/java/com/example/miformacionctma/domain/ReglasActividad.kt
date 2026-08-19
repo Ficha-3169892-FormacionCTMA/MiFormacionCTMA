@@ -1,3 +1,5 @@
+@file:Suppress("unused", "SpellCheckingInspection")
+
 package com.example.miformacionctma.domain
 
 object ReglasActividad {
