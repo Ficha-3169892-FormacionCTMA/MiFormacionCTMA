@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,13 +22,19 @@ import com.example.miformacionctma.ui.components.TarjetaActividad
 @Composable
 fun PantallaActividades(
     actividades: List<ActividadFormativa>,
-    onActividadClick: (ActividadFormativa) -> Unit
+    onActividadClick: (ActividadFormativa) -> Unit,
+    onCrearClick: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Mi Formación CTMA") }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onCrearClick) {
+                Icon(Icons.Default.Add, contentDescription = "Nueva Actividad")
+            }
         }
     ) { innerPadding ->
         BoxWithConstraints(
