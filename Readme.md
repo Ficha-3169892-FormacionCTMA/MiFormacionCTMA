@@ -1,75 +1,114 @@
-# Mi Formación CTMA
+﻿# Informe de Desarrollo: Mi Formación CTMA
 
-Aplicación móvil nativa en Android construida para optimizar la organización, trazabilidad y gestión de compromisos formativos de los aprendices.
-
----
-
-## 1. Propósito y Descripción del Problema
-Los aprendices suelen administrar actividades, enlaces, evidencias y fechas en diferentes canales de comunicación. Esto produce olvidos, duplicación de trabajo y poca trazabilidad. **Mi Formación CTMA** resuelve este problema centralizando el progreso en una interfaz moderna, accesible y adaptable basada en **Jetpack Compose** y **Material Design 3**.
-
----
-
-## 2. Usuarios y Necesidades
-
-| Actor | Necesidad Inicial | Valor Esperado |
-| :--- | :--- | :--- |
-| **Aprendiz** | Consultar compromisos, jerarquizar prioridades y monitorear el avance general de su proceso. | Organización centralizada, baja carga cognitiva y visibilidad inmediata de entregas. |
-| **Instructor** | Comunicar actividades formativas y verificar criterios de avance. | Trazabilidad clara de resultados de aprendizaje. |
+## Actividad: Desarrollo de Aplicación Móvil con Jetpack Compose y Navegación Robusta
+**Responsable Técnico:** Wilson Castro Gil  
+**Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
+**Rama Principal de Trabajo:** `feat/thomas`  
+**Scrum Master:** Thomas
 
 ---
 
-## 3. Arquitectura de Interfaz y Decisiones Técnicas (Semana 03)
-
-### A. Adaptabilidad Responsiva (Layout Adaptable)
-* **Criterio de Adaptabilidad:** Se implementó una evaluación del ancho disponible en pantalla con el umbral estándar de **`600.dp`**.
-* **Comportamiento Móvil (`< 600.dp`):** La interfaz renderiza una lista de desplazamiento vertical fluido (`LazyColumn`) ideal para interacción a una sola mano en smartphones.
-* **Comportamiento Pantalla Ancha / Tablet (`>= 600.dp`):** La interfaz se reestructura automáticamente a una cuadrícula de dos columnas (`LazyVerticalGrid`), optimizando el aprovechamiento del espacio horizontal sin estirar las tarjetas.
-
-### B. Rendimiento y Optimización de Listas
-* **Claves Estables (`key = { it.id }`):** Tanto en `LazyColumn` como en `LazyVerticalGrid` se asignó la propiedad única e inmutable `id` de la entidad `ActividadFormativa`. Esto permite que el motor de Jetpack Compose identifique cada elemento de forma única, evitando la recomposición innecesaria de elementos de la lista durante eventos de desplazamiento (scrolling) o mutaciones de datos.
-
-### C. Accesibilidad y Diseño Inclusivo (WCAG / Material 3)
-* **Doble Canal de Identificación:** Se implementó una estrategia visual redundante. El estado de las actividades no depende únicamente del color, sino de la combinación simultánea de **color, ícono descriptivo (CheckCircle vs. Warning) y texto explicativo**, garantizando la legibilidad para usuarios con acromatopsia o daltonismo.
-* **Semántica para Lectores de Pantalla:** Los íconos de estado incluyen descripciones textuales explícitas a través de `contentDescription = "Estado: ..."` para asistencia en tecnologías como TalkBack.
-* **Jerarquía Tipográfica y Manejo de Textos Extremos:** La tarjeta (`TarjetaActividad`) utiliza `TextOverflow.Ellipsis` con límite de líneas para soportar nombres extensos sin romper el diseño de la interfaz ni solapar componentes adyacentes.
-
-### D. Panel de Control y Métricas de Rendimiento (Dashboard)
-* **Reducción de Carga Cognitiva:** En lugar de requerir que el usuario procese mentalmente la suma de sus entregas, el componente `EncabezadoFormacion` calcula en tiempo real el porcentaje global de avance y las evidencias completadas, mostrando un indicador visual circular (`CircularProgressIndicator`) y barras de progreso individuales (`LinearProgressIndicator`).
+## 1. Contexto del Proyecto
+"Mi Formación CTMA" es una solución móvil diseñada bajo el paradigma de desarrollo moderno en Android. El objetivo principal es la gestión eficiente de compromisos formativos, permitiendo el seguimiento de progreso, priorización de tareas y visualización detallada de actividades técnicas en un entorno académico y profesional.
 
 ---
 
-## 4. Historias de Usuario e Incremento Desarrollado
-
-### Historia 1: Interfaz Base y Bienvenida
-* **Como** aprendiz,
-* **quiero** abrir la aplicación y ver un panel con mi nombre y resumen general,
-* **para** confirmar mi estado actual dentro del trimestre formativo.
-> **Criterio de Aceptación:** La app ejecuta `EncabezadoFormacion` calculando el número total de actividades y el porcentaje de cumplimiento de forma dinámica.
-
-### Historia 2: Visualización y Gestión de Compromisos Formativos
-* **Como** aprendiz,
-* **quiero** visualizar la lista completa de actividades con sus prioridades y porcentajes individuales de entrega,
-* **para** enfocar mis esfuerzos en las tareas urgentes.
-> **Criterio de Aceptación:** Las tarjetas de actividad muestran chips de prioridad (ALTA/MEDIA/BAJA), barras de progreso visual y reaccionan correctamente cuando la lista está vacía (`emptyList()`).
-
-### Historia 3: Estabilidad y Versionado del Repositorio
-* **Como** equipo de desarrollo,
-* **quiero** contar con un repositorio limpio y versionado bajo estándares semánticos de Git,
-* **para** garantizar la evolución continua del proyecto sin subir artefactos temporales de compilación.
-> **Criterio de Aceptación:** Repositorio estructurado con `.gitignore` correcto, sin carpetas `build/` o contraseñas, e incremento registrado bajo la convención *Conventional Commits*: `feat: construye interfaz accesible de actividades de Mi Formación CTMA`.
+## 2. Arquitectura y Tecnologías
+La aplicación sigue una **Arquitectura en Capas (Clean Architecture)** simplificada, promoviendo la inmutabilidad y la separación de responsabilidades:
+*   **Lenguaje:** Kotlin 2.0.21
+*   **UI Toolkit:** Jetpack Compose con Material Design 3
+*   **Navegación:** Navigation Compose con Seguridad de Tipos (Type-safe)
+*   **Serialización:** Kotlinx Serialization
+*   **Gestión de Estado:** Unidirectional Data Flow (UDF) y State Hoisting
 
 ---
 
-## 5. Requisitos Técnicos
-* **Lenguaje:** Kotlin
-* **Interfaz:** Jetpack Compose (Declarativa)
-* **Componentes de Diseño:** Material Design 3 (`Card`, `Scaffold`, `LazyColumn`, `LazyVerticalGrid`)
-* **Entorno de Desarrollo:** Android Studio
-* **Sistema de Compilación:** Gradle (Kotlin DSL)
+## 3. Procesos y Componentes Implementados
+
+### A. Modelo de Dominio y Lógica Pura (`domain`)
+*   **`ActividadFormativa`**: Modelo de datos inmutable que encapsula la identidad y estado de cada tarea.
+*   **`ReglasActividad`**: Objeto centralizado de lógica de negocio. Realiza validaciones estrictas (título de 3 a 80 caracteres) y cálculos dinámicos de estado (Pendiente, En Progreso, Completada, Vencida) basándose en el progreso y plazos temporales.
+
+### B. Navegación Segura y Gestión de Pila (`AppNavigation`)
+*   **Rutas Serializables**: Implementación de `ListaActividadesRoute`, `CrearActividadRoute` y `DetalleActividadRoute(actividadId: Long)` utilizando tipos fuertemente tipados, eliminando errores por cadenas de texto mal escritas.
+*   **State Hoisting**: El estado de la lista global se eleva a este componente, permitiendo que todas las pantallas reflejen cambios en tiempo real de forma sincronizada.
+
+### C. Interfaz Adaptativa y Reutilizable (`ui.screens` & `ui.components`)
+*   **`PantallaActividades`**: Implementa `BoxWithConstraints` para detectar el ancho del dispositivo, alternando automáticamente entre un listado vertical (`LazyColumn`) y una cuadrícula (`LazyVerticalGrid`) para tablets o modo horizontal.
+*   **`TarjetaActividad`**: Componente visual atómico que utiliza `LinearProgressIndicator` y chips informativos para resumir la información de un vistazo.
+
+### D. Gestión de Detalle y Resiliencia (`PantallaDetalle`)
+*   **`DetalleUiState`**: Implementación de una interfaz sellada (Sealed Interface) para gestionar tres estados posibles: `Cargando`, `Exito` y `NoEncontrada`. Esto garantiza que la aplicación no se cierre ante IDs de actividad inexistentes, proporcionando una respuesta visual controlada.
+
+### E. Formularios Interactivos y Captura de Datos (`PantallaCrearActividad`)
+*   **Selector de Fecha (DatePicker)**: Integración de un diálogo de calendario interactivo para la selección de plazos (día, mes, año).
+*   **Control de Progreso (Slider)**: Uso de deslizadores para asignar el porcentaje inicial de avance de forma táctil y visual.
+*   **Formulario Controlado**: Implementación de validación en tiempo real con mensajes de error dinámicos y protección contra "doble toque" en el botón de guardado.
 
 ---
 
-## 6. Forma de Ejecución
-1. Clonar el repositorio localmente:
-   ```bash
-   git clone <URL_DEL_REPOSITORIO>
+## 4. Flujo de Trabajo (Git Workflow)
+El desarrollo se ha orquestado bajo la metodología Scrum, liderado por **Thomas (Scrum Master)**. Todo el código y los incrementos de funcionalidad se han consolidado en la rama de característica `feat/thomas`, asegurando la trazabilidad de los cambios y la estabilidad del código base antes de su integración final.
+
+---
+
+## 5. Casos de Prueba y Validación
+Se han verificado satisfactoriamente los siguientes escenarios:
+*   **Persistencia de Borradores**: Uso de `rememberSaveable` para mantener el texto del formulario tras rotaciones de pantalla.
+*   **Cálculo de Días**: Verificación de la diferencia de días entre la fecha seleccionada y la fecha actual del sistema.
+*   **Back Stack**: Navegación fluida de regreso (`popBackStack`) tras completar acciones, evitando duplicidad en la historia de la aplicación.
+
+---
+
+## 6. Diagramas Técnicos
+
+### Mapa de Navegación
+```mermaid
+graph TD
+    A[ListaActividadesRoute] -->|onCrearClick| B[CrearActividadRoute]
+    A -->|onActividadClick id | C[DetalleActividadRoute]
+    B -->|onActividadGuardada / popBackStack| A
+    B -->|onVolverClick / popBackStack| A
+    C -->|onVolverClick / popBackStack| A
+```
+
+### Flujo Unidireccional de Datos (UDF)
+```mermaid
+graph LR
+    subgraph "State Holder (ViewModel/Navigation)"
+        S[UI State]
+    end
+    subgraph "UI (Composables Stateless)"
+        D[Visualización de Datos]
+        E[Eventos del Usuario]
+    end
+    S -->|Data Down| D
+    E -->|Events Up| S
+    S -->|Business Logic| S
+```
+
+---
+
+## 7. Matriz de Continuidad (Semana 3 -> Semana 4)
+| Componente | Semana 3 | Evolución Semana 4 |
+| --- | --- | --- |
+| **Navegación** | Pantalla Única | NavHost con 3 destinos y Type-safety |
+| **Estado** | Datos Ficticios Estáticos | Lista Observable con State Hoisting |
+| **Formulario** | No existía | Formulario controlado con validación y borrador |
+| **Detalle** | Click sin acción | Pantalla dedicada con manejo de ID y errores |
+| **Restauración** | N/A | rememberSaveable para formularios |
+| **Validación** | Básica | Reglas puras para Título, Descripción y Fecha |
+
+---
+
+## 9. Mapeo de Componentes (Material de Estudio - Semana 4)
+
+| Componente | Uso en Proyecto | Descripción Técnica |
+| --- | --- | --- |
+| **rememberSaveable** | Formulario y Lista | Conserva el estado ante recreación de la Activity. |
+| **State Hoisting** | PantallaCrearActividad | Eleva el estado al contenedor, dejando el formulario stateless. |
+| **UDF** | Todo el flujo | Datos bajan (State), Eventos suben (Callbacks). |
+| **LaunchedEffect** | Tracking de Pantallas | Dispara efectos laterales únicos al entrar en la composición. |
+| **DisposableEffect** | Ciclo de Vida | Gestiona la limpieza de observadores y recursos. |
+| **Safe Navigation** | NavHost | Navegación con tipos serializables y paso de ID único. |
+| **Reglas Puras** | ReglasActividad | Lógica de validación independiente de la interfaz. |

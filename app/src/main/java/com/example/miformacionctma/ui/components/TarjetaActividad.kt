@@ -1,109 +1,90 @@
-package com.example.miformacionctma.ui
+package com.example.miformacionctma.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.miformacionctma.data.Actividad
-import com.example.miformacionctma.data.NivelPrioridad
-import java.util.Date
-import java.util.concurrent.TimeUnit
+import com.example.miformacionctma.domain.ActividadFormativa
 
 @Composable
 fun TarjetaActividad(
-    actividad: Actividad,
-    onClick: () -> Unit,
+    actividad: ActividadFormativa,
+    onActividadClick: (ActividadFormativa) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val prioridad = actividad.obtenerPrioridad()
-
-    val diferenciaMs = actividad.fechaLimite.time - Date().time
-    val diasRestantes = TimeUnit.MILLISECONDS.toDays(diferenciaMs)
-
-    val (colorEtiqueta, textoPrioridad) = when (prioridad) {
-        NivelPrioridad.CRITICA -> Color(0xFFD32F2F) to " URGENTE ($diasRestantes días)"
-        NivelPrioridad.ALTA -> Color(0xFFF57C00) to " Alta ($diasRestantes días)"
-        NivelPrioridad.MEDIA -> Color(0xFF388E3C) to " Normal ($diasRestantes días)"
-        NivelPrioridad.COMPLETADA -> Color(0xFF1976D2) to " Completada"
-    }
-
     Card(
+        onClick = { onActividadClick(actividad) },
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        shape = RoundedCornerShape(12.dp)
+            .padding(vertical = 4.dp)
+            .semantics {
+                contentDescription = "Actividad: ${actividad.titulo ?: ""}, Días restantes: ${actividad.diasRestantes}"
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // CABECERA: Etiqueta de Semana/Módulo + Badge de Prioridad
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = actividad.titulo,
+                    text = actividad.titulo ?: "",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-
-                Box(
-                    modifier = Modifier
-                        .background(colorEtiqueta.copy(alpha = 0.15f), shape = RoundedCornerShape(16.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = textoPrioridad,
-                        color = colorEtiqueta,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Spacer(modifier = Modifier.width(8.dp))
+                SuggestionChip(
+                    onClick = { },
+                    label = { Text("${actividad.diasRestantes} días") }
+                )
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = actividad.descripcion ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = actividad.descripcion,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Progreso: ${actividad.progreso}%",
+                style = MaterialTheme.typography.bodySmall
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            LinearProgressIndicator(
+                progress = { actividad.progreso / 100f },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                LinearProgressIndicator(
-                    progress = { actividad.progreso },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(8.dp),
-                    color = if (actividad.progreso >= 1.0f) Color(0xFF388E3C) else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "${(actividad.progreso * 100).toInt()}%",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            )
         }
     }
 }
