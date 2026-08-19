@@ -15,7 +15,32 @@ object ReglasActividad {
         }
     }
 
-    // 2. Determinar estado de la actividad
+    // 2. Validar título individualmente (Semana 4)
+    fun validarTitulo(valor: String, mostrarVacio: Boolean): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() && mostrarVacio -> "Escribe un título"
+            limpio.isNotEmpty() && limpio.length < 3 -> "Usa al menos 3 caracteres"
+            limpio.length > 80 -> "Usa máximo 80 caracteres"
+            else -> null
+        }
+    }
+
+    // 3. Validar fecha (Semana 4 - no anterior a hoy)
+    fun validarFecha(fechaMillis: Long?): String? {
+        if (fechaMillis == null) return "La fecha es obligatoria"
+        
+        val hoy = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        
+        return if (fechaMillis < hoy) "La fecha no puede ser anterior a hoy" else null
+    }
+
+    // 4. Determinar estado de la actividad
     fun obtenerEstado(progreso: Int, diasRestantes: Int): EstadoActividad {
         return when {
             progreso == 100 -> EstadoActividad.COMPLETADA

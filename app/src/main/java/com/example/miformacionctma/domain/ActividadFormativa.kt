@@ -1,5 +1,8 @@
 package com.example.miformacionctma.domain
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class ActividadFormativa(
     val id: Long,
     val titulo: String,
