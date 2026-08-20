@@ -8,7 +8,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.miformacionctma.domain.ActividadFormativa
-import com.example.miformacionctma.domain.EstadoActividad
 import com.example.miformacionctma.domain.ReglasActividad
 import com.example.miformacionctma.ui.screens.DetalleUiState
 import com.example.miformacionctma.ui.screens.PantallaActividades
@@ -21,13 +20,13 @@ import kotlinx.serialization.json.Json
 
 // Definimos los destinos como objetos o clases serializables
 @Serializable
-object ListaActividadesRoute
+object ListaRoute
 
 @Serializable
-data class DetalleActividadRoute(val actividadId: Long)
+data class DetalleRoute(val actividadId: String)
 
 @Serializable
-object CrearActividadRoute
+object CrearRoute
 
 @Composable
 fun AppNavigation(actividadesIniciales: List<ActividadFormativa>) {
@@ -46,9 +45,9 @@ fun AppNavigation(actividadesIniciales: List<ActividadFormativa>) {
 
     NavHost(
         navController = navController,
-        startDestination = ListaActividadesRoute
+        startDestination = ListaRoute
     ) {
-        composable<ListaActividadesRoute> {
+        composable<ListaRoute> {
             // Efecto Lateral: Registro de analíticas (Sección 9 del Material)
             LaunchedEffect(Unit) {
                 Log.d("Analytics", "Pantalla de Lista Visualizada")
@@ -57,23 +56,24 @@ fun AppNavigation(actividadesIniciales: List<ActividadFormativa>) {
             PantallaActividades(
                 actividades = listaActividades,
                 onActividadClick = { actividad ->
-                    navController.navigate(DetalleActividadRoute(actividad.id))
+                    navController.navigate(DetalleRoute(actividad.id.toString()))
                 },
                 onCrearClick = {
-                    navController.navigate(CrearActividadRoute)
+                    navController.navigate(CrearRoute)
                 }
             )
         }
 
-        composable<DetalleActividadRoute> { backStackEntry ->
-            val route: DetalleActividadRoute = backStackEntry.toRoute()
+        composable<DetalleRoute> { backStackEntry ->
+            val route: DetalleRoute = backStackEntry.toRoute()
             
             LaunchedEffect(route.actividadId) {
                 Log.d("Analytics", "Detalle de Actividad #${route.actividadId} Visualizada")
             }
 
             val uiState = remember(route.actividadId, listaActividades) {
-                val actividad = listaActividades.find { it.id == route.actividadId }
+                val idLong = route.actividadId.toLongOrNull()
+                val actividad = listaActividades.find { it.id == idLong }
                 if (actividad != null) {
                     DetalleUiState.Exito(actividad)
                 } else {
@@ -87,7 +87,7 @@ fun AppNavigation(actividadesIniciales: List<ActividadFormativa>) {
             )
         }
 
-        composable<CrearActividadRoute> {
+        composable<CrearRoute> {
             LaunchedEffect(Unit) {
                 Log.d("Analytics", "Pantalla de Creación Visualizada")
             }

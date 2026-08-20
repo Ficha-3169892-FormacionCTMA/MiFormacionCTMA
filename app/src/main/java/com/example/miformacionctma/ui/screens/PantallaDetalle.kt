@@ -15,7 +15,7 @@ import com.example.miformacionctma.domain.ActividadFormativa
 sealed interface DetalleUiState {
     data object Cargando : DetalleUiState
     data class Exito(val actividad: ActividadFormativa) : DetalleUiState
-    data class NoEncontrada(val id: Long) : DetalleUiState
+    data class NoEncontrada(val id: String) : DetalleUiState
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,7 +126,7 @@ private fun ContenidoDetalle(actividad: ActividadFormativa) {
 }
 
 @Composable
-private fun EstadoNoEncontrado(id: Long) {
+private fun EstadoNoEncontrado(id: String) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
