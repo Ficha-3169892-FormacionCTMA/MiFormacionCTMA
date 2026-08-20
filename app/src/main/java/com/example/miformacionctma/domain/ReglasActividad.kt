@@ -26,6 +26,11 @@ object ReglasActividad {
         }
     }
 
+    // 2b. Validar descripción (Semana 4)
+    fun validarDescripcion(valor: String): String? {
+        return if (valor.length > 240) "Máximo 240 caracteres" else null
+    }
+
     // 3. Validar fecha (Semana 4 - no anterior a hoy)
     fun validarFecha(fechaMillis: Long?): String? {
         if (fechaMillis == null) return "La fecha es obligatoria"
@@ -48,5 +53,11 @@ object ReglasActividad {
             progreso == 0 -> EstadoActividad.PENDIENTE
             else -> EstadoActividad.EN_PROGRESO
         }
+    }
+
+    // 5. Calcular promedio de progreso (Semana 3)
+    fun promedioProgreso(actividades: List<ActividadFormativa>): Double {
+        if (actividades.isEmpty()) return 0.0
+        return actividades.sumOf { it.progreso }.toDouble() / actividades.size
     }
 }

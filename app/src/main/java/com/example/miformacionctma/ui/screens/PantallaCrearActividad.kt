@@ -16,24 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
 
-data class FormularioActividadUIState(
-    val titulo: String = "",
-    val descripcion: String = "",
-    val progreso: Int = 0,
-    val prioridad: Prioridad = Prioridad.MEDIA,
-    val fechaSeleccionadaMillis: Long? = null,
-    val tituloError: String? = null,
-    val descripcionError: String? = null,
-    val fechaError: String? = null,
-    val intentoGuardar: Boolean = false
-) {
-    val puedeGuardar: Boolean
-        get() = titulo.trim().length in 3..80 && 
-                descripcion.length <= 240 && 
-                fechaSeleccionadaMillis != null &&
-                ReglasActividad.validarFecha(fechaSeleccionadaMillis) == null
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaCrearActividad(
@@ -50,7 +32,7 @@ fun PantallaCrearActividad(
     var guardando by remember { mutableStateOf(false) }
     var mostrarDatePicker by remember { mutableStateOf(false) }
 
-    val uiState = FormularioActividadUIState(
+    val uiState = FormularioActividadUiState(
         titulo = titulo,
         descripcion = descripcion,
         progreso = progreso,
@@ -58,7 +40,7 @@ fun PantallaCrearActividad(
         fechaSeleccionadaMillis = fechaSeleccionadaMillis,
         intentoGuardar = intentoGuardar,
         tituloError = if (intentoGuardar) ReglasActividad.validarTitulo(titulo, true) else null,
-        descripcionError = if (descripcion.length > 240) "Máximo 240 caracteres" else null,
+        descripcionError = if (intentoGuardar || (descripcion.length > 240)) ReglasActividad.validarDescripcion(descripcion) else null,
         fechaError = if (intentoGuardar) ReglasActividad.validarFecha(fechaSeleccionadaMillis) else null
     )
 
@@ -123,7 +105,7 @@ fun PantallaCrearActividad(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormularioActividad(
-    uiState: FormularioActividadUIState,
+    uiState: FormularioActividadUiState,
     onTituloChange: (String) -> Unit,
     onDescripcionChange: (String) -> Unit,
     onProgresoChange: (Int) -> Unit,
