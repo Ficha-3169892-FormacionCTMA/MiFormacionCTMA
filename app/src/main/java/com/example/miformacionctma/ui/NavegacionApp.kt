@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.miformacionctma.ui.screens.PantallaActividades
+import com.example.miformacionctma.ui.screens.PantallaCrearActividad
 import com.example.miformacionctma.ui.screens.PantallaDetalleActividad
 
 @Composable
@@ -28,8 +29,18 @@ fun NavegacionApp(viewModel: ActividadesViewModel = viewModel()) {
                     viewModel.seleccionarActividad(id)
                     navController.navigate("detalle_actividad/$id")
                 },
-                onToggleCompletada = { id ->
-                    viewModel.alternarEstadoActividad(id)
+                onCrearActividadClick = {
+                    navController.navigate("crear_actividad")
+                }
+            )
+        }
+
+        composable("crear_actividad") {
+            PantallaCrearActividad(
+                onVolver = { navController.popBackStack() },
+                onGuardar = { titulo, descripcion ->
+                    viewModel.agregarActividad(titulo, descripcion)
+                    navController.popBackStack()
                 }
             )
         }
@@ -38,13 +49,13 @@ fun NavegacionApp(viewModel: ActividadesViewModel = viewModel()) {
             route = "detalle_actividad/{actividadId}",
             arguments = listOf(navArgument("actividadId") { type = NavType.IntType })
         ) {
-            val actividad = uiState.actividadSeleccionada
-
             PantallaDetalleActividad(
-                actividad = actividad,
+                actividad = uiState.actividadSeleccionada,
                 onVolver = { navController.popBackStack() },
                 onToggleCompletada = { id ->
-                    viewModel.alternarEstadoActividad(id)
+                    val actual = uiState.actividadSeleccionada?.progreso ?: 0f
+                    val nuevoProgreso = if (actual >= 1.0f) 0.0f else 1.0f
+                    viewModel.actualizarProgresoActividad(id, nuevoProgreso)
                 }
             )
         }
