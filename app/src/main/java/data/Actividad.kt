@@ -1,5 +1,7 @@
 package com.example.miformacionctma.data
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -10,8 +12,10 @@ enum class NivelPrioridad {
     COMPLETADA
 }
 
+@Entity(tableName = "actividades")
 data class Actividad(
-    val id: Int,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val titulo: String,
     val descripcion: String,
     val fechaLimite: Date,
