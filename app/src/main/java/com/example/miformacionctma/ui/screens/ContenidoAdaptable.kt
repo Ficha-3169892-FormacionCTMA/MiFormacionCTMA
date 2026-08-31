@@ -11,32 +11,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.data.Actividad
 import com.example.miformacionctma.ui.components.EncabezadoFormacion
 import com.example.miformacionctma.ui.components.TarjetaActividad
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContenidoAdaptable(
-    actividades: List<ActividadFormativa>,
+    actividades: List<Actividad>,
+    onActividadClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Cálculo dinámico de métricas para el nuevo panel del encabezado
+    // Cálculo dinámico de métricas para el encabezado (progreso es Float 0..1)
     val totalActividades = actividades.size
-    val completadas = actividades.count { it.progreso >= 100 }
+    val completadas = actividades.count { it.progreso >= 1.0f || it.completada }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(title = { Text("Mi Formación CTMA") })
         }
     ) { paddingValues ->
-        @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Umbral de adaptabilidad definido en 600.dp[cite: 1]
+            // Umbral de adaptabilidad definido en 600.dp
             val esPantallaAncha = this.maxWidth >= 600.dp
 
             Column(modifier = Modifier.fillMaxSize()) {
@@ -58,29 +58,30 @@ fun ContenidoAdaptable(
                         )
                     }
                 } else if (esPantallaAncha) {
-                    // Vista para pantallas anchas (Cuadrícula de 2 columnas)[cite: 1]
+                    // Vista para pantallas anchas (Cuadrícula de 2 columnas)
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         contentPadding = PaddingValues(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(items = actividades, key = { it.id }) { actividad -> // Clave estable por id[cite: 1]
+                        items(items = actividades, key = { it.id }) { actividad ->
                             TarjetaActividad(
                                 actividad = actividad,
-                                onActividadClick = { }
+                                onClick = { onActividadClick(actividad.id) }
                             )
                         }
                     }
                 } else {
-                    // Vista para teléfonos (Lista vertical)[cite: 1]
+                    // Vista para teléfonos (Lista vertical)
                     LazyColumn(
-                        contentPadding = PaddingValues(bottom = 16.dp)
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        items(items = actividades, key = { it.id }) { actividad -> // Clave estable por id[cite: 1]
+                        items(items = actividades, key = { it.id }) { actividad ->
                             TarjetaActividad(
                                 actividad = actividad,
-                                onActividadClick = { }
+                                onClick = { onActividadClick(actividad.id) }
                             )
                         }
                     }

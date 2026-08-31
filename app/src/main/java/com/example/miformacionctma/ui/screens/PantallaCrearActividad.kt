@@ -9,53 +9,37 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
-fun validarTitulo(valor: String, mostrarVacio: Boolean): String? {
-    val limpio = valor.trim()
-    return when {
-        limpio.isEmpty() && mostrarVacio -> "Escribe un título para la actividad"
-        limpio.isNotEmpty() && limpio.length < 3 -> "Usa al menos 3 caracteres"
-        limpio.length > 80 -> "Usa máximo 80 caracteres"
-        else -> null
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaCrearActividad(
+    actividadId: Int? = null,
+    initialTitulo: String = "",
+    initialDescripcion: String = "",
     onVolver: () -> Unit,
     onGuardar: (String, String) -> Unit
 ) {
-    var titulo by rememberSaveable { mutableStateOf("") }
-    var descripcion by rememberSaveable { mutableStateOf("") }
+    var titulo by rememberSaveable { mutableStateOf(initialTitulo) }
+    var descripcion by rememberSaveable { mutableStateOf(initialDescripcion) }
     var intentoGuardar by rememberSaveable { mutableStateOf(false) }
     var guardando by rememberSaveable { mutableStateOf(false) }
 
-    val tituloError = validarTitulo(titulo, mostrarVacio = intentoGuardar)
-    val descripcionError = if (descripcion.length > 240) "Usa máximo 240 caracteres" else null
-    val puedeGuardar = tituloError == null && descripcionError == null && titulo.trim().isNotEmpty()
+    val tituloError = if (intentoGuardar && titulo.trim().isEmpty()) "El título es obligatorio" 
+                     else if (titulo.length > 80) "Máximo 80 caracteres" else null
+    val descripcionError = if (descripcion.length > 240) "Máximo 240 caracteres" else null
+    val puedeGuardar = tituloError == null && titulo.trim().isNotEmpty()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nueva Actividad", fontWeight = FontWeight.Bold) },
+                title = { Text(if (actividadId == null) "Nueva Actividad" else "Editar Actividad", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -72,9 +56,9 @@ fun PantallaCrearActividad(
         ) {
             OutlinedTextField(
                 value = titulo,
-                onValueChange = { titulo = it },
+                onValueChange = { if (it.length <= 80) titulo = it },
                 label = { Text("Título *") },
-                supportingText = { Text(tituloError ?: "${titulo.length}/80") },
+                supportingText = { Text("${titulo.length}/80") },
                 isError = tituloError != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -87,7 +71,7 @@ fun PantallaCrearActividad(
                 value = descripcion,
                 onValueChange = { if (it.length <= 240) descripcion = it },
                 label = { Text("Descripción") },
-                supportingText = { Text(descripcionError ?: "${descripcion.length}/240") },
+                supportingText = { Text("${descripcion.length}/240") },
                 isError = descripcionError != null,
                 maxLines = 4,
                 modifier = Modifier.fillMaxWidth()
@@ -106,7 +90,7 @@ fun PantallaCrearActividad(
                 enabled = !guardando,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (guardando) "Guardando..." else "Guardar Actividad")
+                Text(if (actividadId == null) "Guardar Actividad" else "Actualizar Actividad")
             }
         }
     }

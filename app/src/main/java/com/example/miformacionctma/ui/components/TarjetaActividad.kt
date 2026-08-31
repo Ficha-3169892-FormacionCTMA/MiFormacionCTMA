@@ -1,4 +1,4 @@
-package com.example.miformacionctma.ui
+package com.example.miformacionctma.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,7 +48,6 @@ fun TarjetaActividad(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // CABECERA: Etiqueta de Semana/Módulo + Badge de Prioridad
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

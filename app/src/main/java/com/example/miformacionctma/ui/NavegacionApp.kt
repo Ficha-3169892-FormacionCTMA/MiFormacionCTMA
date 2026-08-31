@@ -14,7 +14,9 @@ import com.example.miformacionctma.ui.screens.PantallaCrearActividad
 import com.example.miformacionctma.ui.screens.PantallaDetalleActividad
 
 @Composable
-fun NavegacionApp(viewModel: ActividadesViewModel = viewModel()) {
+fun NavegacionApp(
+    viewModel: ActividadesViewModel = viewModel(factory = ActividadesViewModel.Factory)
+) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsState()
 
@@ -25,21 +27,47 @@ fun NavegacionApp(viewModel: ActividadesViewModel = viewModel()) {
         composable("lista_actividades") {
             PantallaActividades(
                 actividades = uiState.actividades,
+                mostrarFinalizadas = uiState.mostrarFinalizadas,
                 onActividadClick = { id ->
                     viewModel.seleccionarActividad(id)
                     navController.navigate("detalle_actividad/$id")
                 },
                 onCrearActividadClick = {
+                    viewModel.seleccionarActividad(null)
                     navController.navigate("crear_actividad")
+                },
+                onToggleFinalizadas = {
+                    viewModel.toggleMostrarFinalizadas()
+                },
+                onDeleteActividad = { actividad ->
+                    viewModel.eliminarActividad(actividad)
                 }
             )
         }
 
-        composable("crear_actividad") {
+        composable(
+            route = "crear_actividad?actividadId={actividadId}",
+            arguments = listOf(
+                navArgument("actividadId") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
+        ) { backStackEntry ->
+            val actividadId = backStackEntry.arguments?.getInt("actividadId") ?: -1
+            val actividadExistente = uiState.actividadSeleccionada
+
             PantallaCrearActividad(
+                actividadId = if (actividadId == -1) null else actividadId,
+                initialTitulo = if (actividadId != -1) actividadExistente?.titulo ?: "" else "",
+                initialDescripcion = if (actividadId != -1) actividadExistente?.descripcion ?: "" else "",
                 onVolver = { navController.popBackStack() },
                 onGuardar = { titulo, descripcion ->
-                    viewModel.agregarActividad(titulo, descripcion)
+                    if (actividadId == -1) {
+                        viewModel.agregarActividad(titulo, descripcion)
+                    } else {
+                        viewModel.editarActividad(actividadId, titulo, descripcion)
+                    }
                     navController.popBackStack()
                 }
             )
@@ -52,6 +80,9 @@ fun NavegacionApp(viewModel: ActividadesViewModel = viewModel()) {
             PantallaDetalleActividad(
                 actividad = uiState.actividadSeleccionada,
                 onVolver = { navController.popBackStack() },
+                onEditar = { id ->
+                    navController.navigate("crear_actividad?actividadId=$id")
+                },
                 onToggleCompletada = { id ->
                     val actual = uiState.actividadSeleccionada?.progreso ?: 0f
                     val nuevoProgreso = if (actual >= 1.0f) 0.0f else 1.0f
