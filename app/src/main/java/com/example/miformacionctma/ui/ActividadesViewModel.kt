@@ -1,52 +1,130 @@
 package com.example.miformacionctma.ui
 
 import androidx.lifecycle.ViewModel
-import com.example.miformacionctma.data.Actividad
-import com.example.miformacionctma.data.MockData
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import androidx.lifecycle.viewModelScope
+import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.MockData
+import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ReglasActividad
+import kotlinx.coroutines.flow.*
 
 data class ActividadesUiState(
-    val actividades: List<Actividad> = emptyList(),
-    val actividadSeleccionada: Actividad? = null
+    val actividadesVisibles: List<ActividadFormativa> = emptyList(),
+    val searchQuery: String = "",
+    val filtroPrioridad: Prioridad? = null,
+    val ordenadoPorVencimiento: Boolean = false,
+    val actividadSeleccionada: ActividadFormativa? = null
 )
 
 class ActividadesViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ActividadesUiState())
-    val uiState: StateFlow<ActividadesUiState> = _uiState.asStateFlow()
+    private val _actividadesOriginales = MutableStateFlow<List<ActividadFormativa>>(emptyList())
+    private val _searchQuery = MutableStateFlow("")
+    private val _filtroPrioridad = MutableStateFlow<Prioridad?>(null)
+    private val _ordenadoPorVencimiento = MutableStateFlow(false)
+    private val _actividadSeleccionada = MutableStateFlow<ActividadFormativa?>(null)
+
+    val uiState: StateFlow<ActividadesUiState> = combine(
+        _actividadesOriginales,
+        _searchQuery,
+        _filtroPrioridad,
+        _ordenadoPorVencimiento,
+        _actividadSeleccionada
+    ) { lista, query, prioridad, ordenado, seleccionada ->
+        
+        val filtradas = lista
+            .filter { it.titulo.contains(query, ignoreCase = true) }
+            .filter { prioridad == null || it.prioridad == prioridad }
+            .let { 
+                if (ordenado) it.sortedBy { a -> a.diasRestantes } else it 
+            }
+
+        ActividadesUiState(
+            actividadesVisibles = filtradas,
+            searchQuery = query,
+            filtroPrioridad = prioridad,
+            ordenadoPorVencimiento = ordenado,
+            actividadSeleccionada = seleccionada
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ActividadesUiState()
+    )
 
     init {
-        cargarActividades()
+        _actividadesOriginales.value = MockData.listaActividades
     }
 
-    private fun cargarActividades() {
-        _uiState.value = ActividadesUiState(
-            actividades = MockData.obtenerActividades()
+    fun buscar(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun filtrarPorPrioridad(prioridad: Prioridad?) {
+        _filtroPrioridad.value = prioridad
+    }
+
+    fun alternarOrden() {
+        _ordenadoPorVencimiento.value = !_ordenadoPorVencimiento.value
+    }
+
+    fun guardarActividad(
+        titulo: String, 
+        descripcion: String, 
+        progreso: Int, 
+        prioridad: Prioridad, 
+        fechaMillis: Long
+    ) {
+        val hoy = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        
+        val diasRestantes = ((fechaMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
+
+        val nuevaActividad = ActividadFormativa(
+            id = (_actividadesOriginales.value.maxOfOrNull { it.id } ?: 0L) + 1L,
+            titulo = titulo,
+            descripcion = descripcion,
+            progreso = progreso,
+            prioridad = prioridad,
+            diasRestantes = diasRestantes,
+            estado = ReglasActividad.obtenerEstado(progreso, diasRestantes)
         )
+        
+        _actividadesOriginales.update { it + nuevaActividad }
     }
 
-    fun seleccionarActividad(id: Int) {
-        val encontrada = _uiState.value.actividades.find { it.id == id }
-        _uiState.value = _uiState.value.copy(actividadSeleccionada = encontrada)
+    fun seleccionarActividad(id: Long) {
+        val encontrada = _actividadesOriginales.value.find { it.id == id }
+        _actividadSeleccionada.value = encontrada
     }
 
-    fun alternarEstadoActividad(id: Int) {
-        val listaActualizada = _uiState.value.actividades.map { actividad ->
-            if (actividad.id == id) {
-                actividad.copy(completada = !actividad.completada)
-            } else {
-                actividad
+    fun alternarEstadoActividad(id: Long) {
+        _actividadesOriginales.update { lista ->
+            lista.map { actividad ->
+                if (actividad.id == id) {
+                    val nuevoProgreso = if (actividad.progreso == 100) 0 else 100
+                    actividad.copy(
+                        progreso = nuevoProgreso,
+                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, actividad.diasRestantes)
+                    )
+                } else {
+                    actividad
+                }
             }
         }
-        val seleccionadaActualizada = _uiState.value.actividadSeleccionada?.let { actual ->
-            if (actual.id == id) actual.copy(completada = !actual.completada) else actual
+        
+        // Actualizar también la seleccionada si coincide
+        if (_actividadSeleccionada.value?.id == id) {
+            val actual = _actividadSeleccionada.value!!
+            val nuevoProgreso = if (actual.progreso == 100) 0 else 100
+            _actividadSeleccionada.value = actual.copy(
+                progreso = nuevoProgreso,
+                estado = ReglasActividad.obtenerEstado(nuevoProgreso, actual.diasRestantes)
+            )
         }
-
-        _uiState.value = _uiState.value.copy(
-            actividades = listaActualizada,
-            actividadSeleccionada = seleccionadaActualizada
-        )
     }
 }

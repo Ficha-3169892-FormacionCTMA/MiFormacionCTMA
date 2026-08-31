@@ -4,43 +4,93 @@ object MockData {
     val listaActividades = listOf(
         ActividadFormativa(
             id = 1L,
-            titulo = "Guía de Jetpack Compose",
-            descripcion = "12 Ago 2026",
-            progreso = 80,
-            diasRestantes = 3,
-            prioridad = Prioridad.ALTA
+            titulo = "Diseño de Caso de Uso y Diagrama de Clases",
+            descripcion = "Modelado de diagramas UML para la fase de análisis.",
+            progreso = 100,
+            prioridad = Prioridad.ALTA,
+            diasRestantes = 0,
+            estado = EstadoActividad.COMPLETADA
         ),
         ActividadFormativa(
             id = 2L,
-            titulo = "Modelado de Base de Datos",
-            descripcion = "05 Jul 2026",
-            progreso = 100,
-            diasRestantes = 0,
-            prioridad = Prioridad.MEDIA
+            titulo = "Construcción de API con FastAPI y SQLAlchemy",
+            descripcion = "Desarrollo de endpoints de productos y autenticación.",
+            progreso = 60,
+            prioridad = Prioridad.ALTA,
+            diasRestantes = 3,
+            estado = EstadoActividad.EN_PROGRESO
         ),
         ActividadFormativa(
             id = 3L,
-            titulo = "Pruebas Unitarias Kotlin",
-            descripcion = "18 Ago 2026",
-            progreso = 0,
+            titulo = "Interfaz Declarativa con Jetpack Compose",
+            descripcion = "Construcción de componentes accesibles e interfaces adaptables.",
+            progreso = 30,
+            prioridad = Prioridad.MEDIA,
             diasRestantes = 5,
-            prioridad = Prioridad.BAJA
+            estado = EstadoActividad.EN_PROGRESO
         ),
         ActividadFormativa(
             id = 4L,
-            titulo = "Configuración de Docker",
-            descripcion = "20 May 2026",
-            progreso = 100,
-            diasRestantes = 0,
-            prioridad = Prioridad.ALTA
+            titulo = "Configuración de Contenedores con Docker",
+            descripcion = "Containerización y despliegue de microservicios.",
+            progreso = 20,
+            prioridad = Prioridad.BAJA,
+            diasRestantes = -2,
+            estado = EstadoActividad.VENCIDA
         ),
         ActividadFormativa(
             id = 5L,
-            titulo = "Diseño de API REST",
-            descripcion = "25 Ago 2026",
-            progreso = 30,
+            titulo = "Diseño de Base de Datos Relacional",
+            descripcion = "Normalización y creación de modelos ER en PostgreSQL.",
+            progreso = 85,
+            prioridad = Prioridad.ALTA,
+            diasRestantes = 2,
+            estado = EstadoActividad.EN_PROGRESO
+        ),
+        ActividadFormativa(
+            id = 6L,
+            titulo = "Implementación de Seguridad con JWT",
+            descripcion = "Protección de rutas de API mediante tokens de autorización.",
+            progreso = 45,
+            prioridad = Prioridad.ALTA,
+            diasRestantes = 4,
+            estado = EstadoActividad.EN_PROGRESO
+        ),
+        ActividadFormativa(
+            id = 7L,
+            titulo = "Pruebas Unitarias e Integración",
+            descripcion = "Cobertura de pruebas automatizadas para servicios backend.",
+            progreso = 20,
+            prioridad = Prioridad.MEDIA,
+            diasRestantes = 7,
+            estado = EstadoActividad.PENDIENTE
+        ),
+        ActividadFormativa(
+            id = 8L,
+            titulo = "Integración Continua con GitHub Actions",
+            descripcion = "Configuración de flujos automatizados de compilación.",
+            progreso = 10,
+            prioridad = Prioridad.MEDIA,
             diasRestantes = 8,
-            prioridad = Prioridad.MEDIA
+            estado = EstadoActividad.PENDIENTE
+        ),
+        ActividadFormativa(
+            id = 9L,
+            titulo = "Documentación Técnica de API con OpenAPI",
+            descripcion = "Generación y estructuración de especificaciones Swagger.",
+            progreso = 50,
+            prioridad = Prioridad.BAJA,
+            diasRestantes = 12,
+            estado = EstadoActividad.EN_PROGRESO
+        ),
+        ActividadFormativa(
+            id = 10L,
+            titulo = "Arquitectura en Capas con Spring Boot",
+            descripcion = "Estructuración modular de la lógica de negocio y persistencia.",
+            progreso = 15,
+            prioridad = Prioridad.ALTA,
+            diasRestantes = 15,
+            estado = EstadoActividad.PENDIENTE
         )
     )
 }

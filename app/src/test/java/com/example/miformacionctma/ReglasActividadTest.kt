@@ -29,8 +29,8 @@ class ReglasActividadTest {
     @Test
     fun test_4_descripcion_larga_debe_detectarse() {
         val descLarga = "A".repeat(241)
-        // La lógica en UIState detecta esto
-        assertTrue(descLarga.length > 240)
+        val error = ReglasActividad.validarDescripcion(descLarga)
+        assertEquals("Máximo 240 caracteres", error)
     }
 
     @Test
@@ -53,7 +53,14 @@ class ReglasActividadTest {
 
     @Test
     fun test_8_fecha_pasada_debe_fallar() {
-        val ayer = System.currentTimeMillis() - (24 * 60 * 60 * 1000)
+        val hoy = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        
+        val ayer = hoy.timeInMillis - (24 * 60 * 60 * 1000)
         val error = ReglasActividad.validarFecha(ayer)
         assertEquals("La fecha no puede ser anterior a hoy", error)
     }
