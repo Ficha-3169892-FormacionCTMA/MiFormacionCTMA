@@ -19,7 +19,8 @@ La aplicación sigue una **Arquitectura en Capas (Clean Architecture)** simplifi
 *   **UI Toolkit:** Jetpack Compose con Material Design 3
 *   **Navegación:** Navigation Compose con Seguridad de Tipos (Type-safe)
 *   **Serialización:** Kotlinx Serialization
-*   **Gestión de Estado:** Unidirectional Data Flow (UDF) y State Hoisting
+*   **Gestión de Estado:** Unidirectional Data Flow (UDF), State Hoisting y **ViewModel (StateFlow)**.
+*   **Reactividad:** Uso de operadores `combine` y `update` para procesamiento de datos en tiempo real.
 
 ---
 
@@ -27,88 +28,94 @@ La aplicación sigue una **Arquitectura en Capas (Clean Architecture)** simplifi
 
 ### A. Modelo de Dominio y Lógica Pura (`domain`)
 *   **`ActividadFormativa`**: Modelo de datos inmutable que encapsula la identidad y estado de cada tarea.
-*   **`ReglasActividad`**: Objeto centralizado de lógica de negocio. Realiza validaciones estrictas (título de 3 a 80 caracteres) y cálculos dinámicos de estado (Pendiente, En Progreso, Completada, Vencida) basándose en el progreso y plazos temporales.
+*   **`ReglasActividad`**: Objeto centralizado de lógica de negocio. Realiza validaciones estrictas (título de 3 a 80 caracteres) y cálculos dinámicos de estado (Pendiente, En Progreso, Completada, Vencida).
 
 ### B. Navegación Segura y Gestión de Pila (`AppNavigation`)
-*   **Rutas Serializables**: Implementación de `ListaActividadesRoute`, `CrearActividadRoute` y `DetalleActividadRoute(actividadId: Long)` utilizando tipos fuertemente tipados, eliminando errores por cadenas de texto mal escritas.
-*   **State Hoisting**: El estado de la lista global se eleva a este componente, permitiendo que todas las pantallas reflejen cambios en tiempo real de forma sincronizada.
+*   **Rutas Serializables**: Implementación de `ListaRoute`, `CrearRoute` y `DetalleRoute(actividadId: String)` utilizando tipos fuertemente tipados.
+*   **Integración con ViewModel**: La navegación consume el estado global de forma reactiva, asegurando que los datos se mantengan sincronizados al navegar entre pantallas.
 
 ### C. Interfaz Adaptativa y Reutilizable (`ui.screens` & `ui.components`)
-*   **`PantallaActividades`**: Implementa `BoxWithConstraints` para detectar el ancho del dispositivo, alternando automáticamente entre un listado vertical (`LazyColumn`) y una cuadrícula (`LazyVerticalGrid`) para tablets o modo horizontal.
-*   **`TarjetaActividad`**: Componente visual atómico que utiliza `LinearProgressIndicator` y chips informativos para resumir la información de un vistazo.
+*   **`PantallaActividades`**: Implementa `BoxWithConstraints` para alternar entre `LazyColumn` y `LazyVerticalGrid` según el ancho del dispositivo.
+*   **`TarjetaActividad`**: Ahora mejorada con **PrioridadChips** (HU 06) que utilizan colores semánticos (Rojo, Naranja, Azul) para una priorización visual inmediata.
 
 ### D. Gestión de Detalle y Resiliencia (`PantallaDetalle`)
-*   **`DetalleUiState`**: Implementación de una interfaz sellada (Sealed Interface) para gestionar tres estados posibles: `Cargando`, `Exito` y `NoEncontrada`. Esto garantiza que la aplicación no se cierre ante IDs de actividad inexistentes, proporcionando una respuesta visual controlada.
+*   **`DetalleUiState`**: Interfaz sellada para gestionar estados de `Cargando`, `Exito` y `NoEncontrada`, garantizando una experiencia de usuario robusta ante errores de ID.
 
 ### E. Formularios Interactivos y Captura de Datos (`PantallaCrearActividad`)
-*   **Selector de Fecha (DatePicker)**: Integración de un diálogo de calendario interactivo para la selección de plazos (día, mes, año).
-*   **Control de Progreso (Slider)**: Uso de deslizadores para asignar el porcentaje inicial de avance de forma táctil y visual.
-*   **Formulario Controlado**: Implementación de validación en tiempo real con mensajes de error dinámicos y protección contra "doble toque" en el botón de guardado.
+*   **Validación en Tiempo Real**: Implementación de `FormularioActividadUiState` para mostrar errores solo tras el primer intento de guardado.
+*   **Control de Progreso y Fecha**: Integración de `Slider` y `DatePicker` interactivos.
 
 ---
 
-## 4. Flujo de Trabajo (Git Workflow)
-El desarrollo se ha orquestado bajo la metodología Scrum, liderado por **Thomas (Scrum Master)**. Todo el código y los incrementos de funcionalidad se han consolidado en la rama de característica `feat/thomas`, asegurando la trazabilidad de los cambios y la estabilidad del código base antes de su integración final.
+## 4. Nuevas Funcionalidades - Semana 4 (Historias de Usuario)
+El día de hoy se han integrado las siguientes mejoras críticas al núcleo del proyecto:
+
+*   **HU 05: Búsqueda en Tiempo Real**: Barra de búsqueda reactiva que filtra la lista por título instantáneamente mientras el usuario escribe.
+*   **HU 06: Visualización de Prioridad con Chips**: Integración de `AssistChip` con colores semánticos en las tarjetas para identificar urgencias de un vistazo.
+*   **HU 07: Filtrado por Nivel de Prioridad**: Fila de `FilterChip` interactivos para segmentar la lista por categorías (Alta, Media, Baja).
+*   **HU 08: Ordenación por Vencimiento**: Botón de acción en la `TopBar` que organiza las actividades priorizando las fechas de entrega más próximas.
 
 ---
 
-## 5. Casos de Prueba y Validación
+## 5. Flujo de Trabajo (Git Workflow)
+El desarrollo se ha orquestado bajo la metodología Scrum, liderado por **Thomas (Scrum Master)**. Todo el código y los incrementos de funcionalidad se han consolidado en la rama de característica `feat/thomas`.
+
+---
+
+## 6. Casos de Prueba y Validación
 Se han verificado satisfactoriamente los siguientes escenarios:
-*   **Persistencia de Borradores**: Uso de `rememberSaveable` para mantener el texto del formulario tras rotaciones de pantalla.
-*   **Cálculo de Días**: Verificación de la diferencia de días entre la fecha seleccionada y la fecha actual del sistema.
-*   **Back Stack**: Navegación fluida de regreso (`popBackStack`) tras completar acciones, evitando duplicidad en la historia de la aplicación.
+*   **Filtros Combinados**: Funcionamiento simultáneo de búsqueda por texto y filtros de prioridad.
+*   **Persistencia de Borradores**: Uso de `rememberSaveable` en el formulario.
+*   **Protección de Doble Toque**: Bloqueo del botón guardar para evitar registros duplicados.
+*   **Carga de Datos Completa**: Restauración de las 10 actividades formativas originales en `MockData`.
 
 ---
 
-## 6. Diagramas Técnicos
+## 7. Diagramas Técnicos
 
 ### Mapa de Navegación
 ```mermaid
 graph TD
-    A[ListaActividadesRoute] -->|onCrearClick| B[CrearActividadRoute]
-    A -->|onActividadClick id | C[DetalleActividadRoute]
+    A[ListaRoute] -->|onCrearClick| B[CrearRoute]
+    A -->|onActividadClick id| C[DetalleRoute]
     B -->|onActividadGuardada / popBackStack| A
-    B -->|onVolverClick / popBackStack| A
     C -->|onVolverClick / popBackStack| A
 ```
 
-### Flujo Unidireccional de Datos (UDF)
+### Flujo de Estado con ViewModel (HU 05-08)
 ```mermaid
-graph LR
-    subgraph "State Holder (ViewModel/Navigation)"
-        S[UI State]
-    end
-    subgraph "UI (Composables Stateless)"
-        D[Visualización de Datos]
-        E[Eventos del Usuario]
-    end
-    S -->|Data Down| D
-    E -->|Events Up| S
-    S -->|Business Logic| S
+graph TD
+    A[Búsqueda Query] --> D[Operador Combine]
+    B[Filtro Prioridad] --> D
+    C[Estado Ordenación] --> D
+    D --> E[listaFiltrada: StateFlow]
+    E -->|Data Down| F[PantallaActividades]
 ```
 
 ---
 
-## 7. Matriz de Continuidad (Semana 3 -> Semana 4)
-| Componente | Semana 3 | Evolución Semana 4 |
-| --- | --- | --- |
-| **Navegación** | Pantalla Única | NavHost con 3 destinos y Type-safety |
-| **Estado** | Datos Ficticios Estáticos | Lista Observable con State Hoisting |
-| **Formulario** | No existía | Formulario controlado con validación y borrador |
-| **Detalle** | Click sin acción | Pantalla dedicada con manejo de ID y errores |
-| **Restauración** | N/A | rememberSaveable para formularios |
-| **Validación** | Básica | Reglas puras para Título, Descripción y Fecha |
+## 8. Matriz de Continuidad y Evolución del Proyecto
+Esta tabla recalca la evolución desde la base hasta las funcionalidades avanzadas actuales:
+
+| Componente | Semana 3 | Semana 4 (Base) | Semana 4 (HU 05-08) |
+| --- | --- | --- | --- |
+| **Navegación** | Pantalla Única | NavHost con Type-safety | Navegación sincronizada con ViewModel |
+| **Estado** | Datos Estáticos | Lista Observable | **Filtrado y Ordenación Reactiva** |
+| **Formulario** | No existía | Validación básica | Validación en tiempo real y UI State |
+| **Búsqueda** | N/A | N/A | **Búsqueda instantánea en TopBar** |
+| **Priorización** | Texto plano | Chips simples | **Chips con Colores Semánticos** |
+| **Ordenación** | N/A | N/A | **Orden inteligente por vencimiento** |
 
 ---
 
-## 9. Mapeo de Componentes (Material de Estudio - Semana 4)
+## 9. Mapeo de Componentes (Material de Estudio)
 
 | Componente | Uso en Proyecto | Descripción Técnica |
 | --- | --- | --- |
-| **rememberSaveable** | Formulario y Lista | Conserva el estado ante recreación de la Activity. |
-| **State Hoisting** | PantallaCrearActividad | Eleva el estado al contenedor, dejando el formulario stateless. |
+| **ViewModel** | ActividadesViewModel | Centraliza la lógica y sobrevive a cambios de configuración. |
+| **StateFlow** | uiState | Expone un flujo de estado reactivo a la UI. |
+| **combine** | Filtrado de Lista | Combina múltiples estados en una vista filtrada única. |
+| **rememberSaveable** | Formularios | Conserva el estado ante recreación de la Activity. |
 | **UDF** | Todo el flujo | Datos bajan (State), Eventos suben (Callbacks). |
-| **LaunchedEffect** | Tracking de Pantallas | Dispara efectos laterales únicos al entrar en la composición. |
-| **DisposableEffect** | Ciclo de Vida | Gestiona la limpieza de observadores y recursos. |
-| **Safe Navigation** | NavHost | Navegación con tipos serializables y paso de ID único. |
-| **Reglas Puras** | ReglasActividad | Lógica de validación independiente de la interfaz. |
+| **Safe Navigation** | NavHost | Navegación con tipos serializables y seguridad de tipos. |
+| **Assist/Filter Chips** | Prioridades y Filtros | Componentes M3 para interacción y contexto visual rápido. |
