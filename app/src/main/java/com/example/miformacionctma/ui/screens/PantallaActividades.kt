@@ -36,7 +36,7 @@ fun PantallaActividades(
     ordenadoPorVencimiento: Boolean,
     onSortClick: () -> Unit,
     onActividadClick: (ActividadFormativa) -> Unit,
-    onCrearClick: () -> Unit
+    onCrearClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -105,12 +105,12 @@ fun PantallaActividades(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp),
         ) {
-            val esPantallaAncha = this.maxWidth >= 600.dp
+            val esPantallaAncha = maxWidth >= 600.dp
 
             if (actividades.isEmpty()) {
-                EstadoVacio(hayFiltros = searchQuery.isNotEmpty() || prioridadSeleccionada != null)
+                EstadoVacio(hayFiltros = (searchQuery.isNotEmpty()) || (prioridadSeleccionada != null))
             } else if (esPantallaAncha) {
                 CuadriculaActividades(actividades = actividades, onActividadClick = onActividadClick)
             } else {
@@ -123,12 +123,12 @@ fun PantallaActividades(
 @Composable
 fun ListaActividades(
     actividades: List<ActividadFormativa>,
-    onActividadClick: (ActividadFormativa) -> Unit
+    onActividadClick: (ActividadFormativa) -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
         items(
             items = actividades,
-            key = { it.id }
+            key = { it.id },
         ) { actividad ->
             TarjetaActividad(actividad = actividad, onActividadClick = onActividadClick)
         }
@@ -138,7 +138,7 @@ fun ListaActividades(
 @Composable
 fun CuadriculaActividades(
     actividades: List<ActividadFormativa>,
-    onActividadClick: (ActividadFormativa) -> Unit
+    onActividadClick: (ActividadFormativa) -> Unit,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),

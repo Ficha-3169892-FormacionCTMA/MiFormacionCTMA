@@ -7,7 +7,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.ui.screens.*
 import kotlinx.serialization.Serializable
 
@@ -23,14 +22,14 @@ object CrearRoute
 
 @Composable
 fun AppNavigation(
-    viewModel: ActividadesViewModel = viewModel()
+    viewModel: ActividadesViewModel = viewModel(),
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsState()
 
     NavHost(
         navController = navController,
-        startDestination = ListaRoute
+        startDestination = ListaRoute,
     ) {
         composable<ListaRoute> {
             PantallaActividades(
@@ -47,7 +46,7 @@ fun AppNavigation(
                 },
                 onCrearClick = {
                     navController.navigate(CrearRoute)
-                }
+                },
             )
         }
 
@@ -71,7 +70,7 @@ fun AppNavigation(
 
             PantallaDetalle(
                 uiState = detalleState,
-                onVolverClick = { navController.popBackStack() }
+                onVolverClick = { navController.popBackStack() },
             )
         }
 

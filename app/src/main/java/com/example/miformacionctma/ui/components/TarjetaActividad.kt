@@ -31,7 +31,7 @@ fun PrioridadChip(prioridad: Prioridad) {
     val colores = when (prioridad) {
         Prioridad.ALTA -> AssistChipDefaults.assistChipColors(
             containerColor = Color(0xFFFFDAD6), // Rojo suave (M3 Error Container)
-            labelColor = Color(0xFF410002)
+            labelColor = Color(0xFF410002),
         )
         Prioridad.MEDIA -> AssistChipDefaults.assistChipColors(
             containerColor = Color(0xFFFFDDB3), // Naranja suave
@@ -63,7 +63,7 @@ fun TarjetaActividad(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .semantics {
-                contentDescription = "Actividad: ${actividad.titulo ?: ""}, Días restantes: ${actividad.diasRestantes}"
+                contentDescription = "Actividad: ${actividad.titulo}, Días restantes: ${actividad.diasRestantes}"
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -78,7 +78,7 @@ fun TarjetaActividad(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = actividad.titulo ?: "",
+                    text = actividad.titulo,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,

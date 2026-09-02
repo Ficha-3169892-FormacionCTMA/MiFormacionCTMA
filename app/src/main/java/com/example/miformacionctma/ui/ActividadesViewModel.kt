@@ -13,7 +13,7 @@ data class ActividadesUiState(
     val searchQuery: String = "",
     val filtroPrioridad: Prioridad? = null,
     val ordenadoPorVencimiento: Boolean = false,
-    val actividadSeleccionada: ActividadFormativa? = null
+    val actividadSeleccionada: ActividadFormativa? = null,
 )
 
 class ActividadesViewModel : ViewModel() {
@@ -21,7 +21,7 @@ class ActividadesViewModel : ViewModel() {
     private val _actividadesOriginales = MutableStateFlow<List<ActividadFormativa>>(emptyList())
     private val _searchQuery = MutableStateFlow("")
     private val _filtroPrioridad = MutableStateFlow<Prioridad?>(null)
-    private val _ordenadoPorVencimiento = MutableStateFlow(false)
+    private val _ordenadoPorVencimiento = MutableStateFlow(value = false)
     private val _actividadSeleccionada = MutableStateFlow<ActividadFormativa?>(null)
 
     val uiState: StateFlow<ActividadesUiState> = combine(
@@ -29,12 +29,13 @@ class ActividadesViewModel : ViewModel() {
         _searchQuery,
         _filtroPrioridad,
         _ordenadoPorVencimiento,
-        _actividadSeleccionada
+        _actividadSeleccionada,
     ) { lista, query, prioridad, ordenado, seleccionada ->
         
-        val filtradas = lista
+        val filtradas = lista.asSequence()
             .filter { it.titulo.contains(query, ignoreCase = true) }
-            .filter { prioridad == null || it.prioridad == prioridad }
+            .filter { (prioridad == null) || (it.prioridad == prioridad) }
+            .toList()
             .let { 
                 if (ordenado) it.sortedBy { a -> a.diasRestantes } else it 
             }
@@ -49,7 +50,7 @@ class ActividadesViewModel : ViewModel() {
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ActividadesUiState()
+        initialValue = ActividadesUiState(),
     )
 
     init {
@@ -73,7 +74,7 @@ class ActividadesViewModel : ViewModel() {
         descripcion: String, 
         progreso: Int, 
         prioridad: Prioridad, 
-        fechaMillis: Long
+        fechaMillis: Long,
     ) {
         val hoy = java.util.Calendar.getInstance().apply {
             set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -91,7 +92,7 @@ class ActividadesViewModel : ViewModel() {
             progreso = progreso,
             prioridad = prioridad,
             diasRestantes = diasRestantes,
-            estado = ReglasActividad.obtenerEstado(progreso, diasRestantes)
+            estado = ReglasActividad.obtenerEstado(progreso, diasRestantes),
         )
         
         _actividadesOriginales.update { it + nuevaActividad }
@@ -102,6 +103,7 @@ class ActividadesViewModel : ViewModel() {
         _actividadSeleccionada.value = encontrada
     }
 
+    @Suppress("unused")
     fun alternarEstadoActividad(id: Long) {
         _actividadesOriginales.update { lista ->
             lista.map { actividad ->

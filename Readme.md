@@ -62,12 +62,16 @@ El desarrollo se ha orquestado bajo la metodología Scrum, liderado por **Thomas
 
 ---
 
-## 6. Casos de Prueba y Validación
-Se han verificado satisfactoriamente los siguientes escenarios:
-*   **Filtros Combinados**: Funcionamiento simultáneo de búsqueda por texto y filtros de prioridad.
-*   **Persistencia de Borradores**: Uso de `rememberSaveable` en el formulario.
-*   **Protección de Doble Toque**: Bloqueo del botón guardar para evitar registros duplicados.
-*   **Carga de Datos Completa**: Restauración de las 10 actividades formativas originales en `MockData`.
+## 6. Aseguramiento de Calidad y Pruebas Unitarias (02/09/2026)
+Se ha implementado una suite de pruebas automatizadas para garantizar la estabilidad de las reglas de negocio y las Historias de Usuario:
+
+*   **Suite de Pruebas**: [ActividadesViewModelTest.kt](file:///C:/Users/Sena/AndroidStudioProjects/MiFormacionCTMA/app/src/test/java/com/example/miformacionctma/ActividadesViewModelTest.kt)
+*   **Cobertura de HU**:
+    *   ✅ **HU 05 (Búsqueda)**: Validado que el filtrado por título es preciso e insensible a mayúsculas/minúsculas.
+    *   ✅ **HU 07 (Filtrado)**: Confirmado que la segmentación por prioridad ALTA aísla correctamente los registros.
+    *   ✅ **HU 08 (Ordenación)**: Verificado que el algoritmo de ordenamiento posiciona correctamente las tareas más urgentes al inicio.
+    *   ✅ **Filtros Combinados**: Verificación exitosa de la coexistencia de búsqueda y filtros de prioridad.
+*   **Resultado Final**: 14 pruebas ejecutadas, **14 pruebas pasadas (100% de éxito)**.
 
 ---
 
