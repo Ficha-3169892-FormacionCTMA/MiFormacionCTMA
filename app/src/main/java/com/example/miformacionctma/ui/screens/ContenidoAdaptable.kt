@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -32,14 +34,15 @@ fun ContenidoAdaptable(
     val configuration = LocalConfiguration.current
     val esPantallaAncha = configuration.screenWidthDp.dp >= 600.dp
 
+    // Criterio 3: Conservación de posición (Uso de states persistentes en la composición)
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(title = { Text("Mi Formación CTMA") })
         },
         floatingActionButton = {
-            // Solo mostramos el FAB si hay actividades, para no duplicar el CTA en estado vacío
-            // o lo dejamos siempre visible según el diseño. Los criterios dicen "incluye un botón directo".
-            // Mantendré el FAB para consistencia, pero el Empty State tendrá su propio botón central.
             if (actividades.isNotEmpty()) {
                 FloatingActionButton(onClick = onCrearActividadClick) {
                     Icon(
@@ -56,12 +59,7 @@ fun ContenidoAdaptable(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // El encabezado solo es relevante si hay algo que resumir o si se quiere mantener siempre.
-            // Según el Criterio 4: "La guía desaparece en cuanto existe al menos una actividad".
-            // Normalmente, el empty state ocupa toda la pantalla debajo del top bar.
-            
             if (actividades.isEmpty()) {
-                // Estado Vacío (Criterio 1, 2, 3)
                 GuiaEstadoVacio(
                     onCrearClick = onCrearActividadClick
                 )
@@ -75,6 +73,7 @@ fun ContenidoAdaptable(
                 if (esPantallaAncha) {
                     // Vista en cuadrícula para pantallas anchas
                     LazyVerticalGrid(
+                        state = gridState,
                         columns = GridCells.Fixed(2),
                         contentPadding = PaddingValues(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -90,6 +89,7 @@ fun ContenidoAdaptable(
                 } else {
                     // Vista en lista vertical para dispositivos móviles
                     LazyColumn(
+                        state = listState,
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         items(items = actividades, key = { it.id }) { actividad ->
