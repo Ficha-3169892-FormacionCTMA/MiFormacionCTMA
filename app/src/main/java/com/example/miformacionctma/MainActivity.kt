@@ -34,7 +34,8 @@ class MainActivity : ComponentActivity() {
                                 descripcion = "Elaborar mapa conceptual sobre arquitectura de software y requerimientos.",
                                 prioridad = Prioridad.ALTA,
                                 progreso = 100,
-                                diasRestantes = 2
+                                diasRestantes = 2,
+                                fechaLimite = "20/05/2024"
                             ),
                             ActividadFormativa(
                                 id = 2L,
@@ -42,7 +43,8 @@ class MainActivity : ComponentActivity() {
                                 descripcion = "Diseñar e implementar interfaz responsiva utilizando listas observables y estados.",
                                 prioridad = Prioridad.MEDIA,
                                 progreso = 50,
-                                diasRestantes = 5
+                                diasRestantes = 5,
+                                fechaLimite = "25/05/2024"
                             ),
                             ActividadFormativa(
                                 id = 3L,
@@ -50,7 +52,8 @@ class MainActivity : ComponentActivity() {
                                 descripcion = "Construir formulario controlado con reglas puras de validación y navegación.",
                                 prioridad = Prioridad.ALTA,
                                 progreso = 0,
-                                diasRestantes = 7
+                                diasRestantes = 7,
+                                fechaLimite = "30/05/2024"
                             )
                         )
                     }
@@ -60,6 +63,12 @@ class MainActivity : ComponentActivity() {
                         actividades = listaActividades,
                         onGuardarNuevaActividad = { nuevaActividad ->
                             listaActividades.add(0, nuevaActividad) // Agrega la nueva actividad al inicio
+                        },
+                        onUpdateActividad = { actividadActualizada ->
+                            val index = listaActividades.indexOfFirst { it.id == actividadActualizada.id }
+                            if (index != -1) {
+                                listaActividades[index] = actividadActualizada
+                            }
                         }
                     )
                 }

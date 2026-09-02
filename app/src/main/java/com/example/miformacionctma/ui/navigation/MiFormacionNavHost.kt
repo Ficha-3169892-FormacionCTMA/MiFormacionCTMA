@@ -26,6 +26,7 @@ object Rutas {
 fun MiFormacionNavHost(
     actividades: List<ActividadFormativa>,
     onGuardarNuevaActividad: (ActividadFormativa) -> Unit,
+    onUpdateActividad: (ActividadFormativa) -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
@@ -69,6 +70,9 @@ fun MiFormacionNavHost(
             DetalleScreen(
                 actividadId = actividadId,
                 actividades = actividades,
+                onGuardarProgreso = { actividadActualizada ->
+                    onUpdateActividad(actividadActualizada)
+                },
                 onVolver = {
                     navController.popBackStack()
                 }

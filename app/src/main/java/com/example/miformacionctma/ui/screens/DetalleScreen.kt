@@ -1,20 +1,19 @@
 package com.example.miformacionctma.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
 
@@ -31,12 +30,14 @@ sealed interface DetalleUiState {
 fun DetalleScreen(
     actividadId: String,
     actividades: List<ActividadFormativa>,
+    onGuardarProgreso: (ActividadFormativa) -> Unit,
     onVolver: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Resolver el estado de la actividad según el ID
     var uiState by remember { mutableStateOf<DetalleUiState>(DetalleUiState.Cargando) }
 
+    // Usamos un efecto para buscar la actividad cada vez que cambie la lista o el ID
     LaunchedEffect(actividadId, actividades) {
         val encontrada = actividades.find { it.id == actividadId.toLong() }
         uiState = if (encontrada != null) {
@@ -74,6 +75,7 @@ fun DetalleScreen(
                 is DetalleUiState.Exito -> {
                     DetalleActividadContent(
                         actividad = state.actividad,
+                        onGuardarProgreso = onGuardarProgreso,
                         onVolver = onVolver
                     )
                 }
@@ -92,9 +94,14 @@ fun DetalleScreen(
 @Composable
 fun DetalleActividadContent(
     actividad: ActividadFormativa,
+    onGuardarProgreso: (ActividadFormativa) -> Unit,
     onVolver: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var editandoProgreso by rememberSaveable { mutableStateOf(false) }
+    var nuevoProgresoStr by rememberSaveable { mutableStateOf(actividad.progreso.toString()) }
+    var errorProgreso by rememberSaveable { mutableStateOf<String?>(null) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -152,15 +159,88 @@ fun DetalleActividadContent(
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
 
-                Text(
-                    text = "Progreso actual: ${actividad.progreso}%",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                // SECCIÓN DE PROGRESO (Criterio 1, 2, 3)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val estaCompletada = actividad.progreso >= 100
+                    Column {
+                        Text(
+                            text = "Progreso: ${actividad.progreso}%",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (estaCompletada) "Estado: Completado" else "Estado: En progreso",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (estaCompletada) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    
+                    if (!editandoProgreso) {
+                        IconButton(onClick = { editandoProgreso = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar progreso")
+                        }
+                    }
+                }
+
+                if (editandoProgreso) {
+                    OutlinedTextField(
+                        value = nuevoProgresoStr,
+                        onValueChange = { 
+                            if (it.all { char -> char.isDigit() } && it.length <= 3) {
+                                nuevoProgresoStr = it
+                                errorProgreso = null
+                            }
+                        },
+                        label = { Text("Porcentaje (0-100)") },
+                        suffix = { Text("%") },
+                        isError = errorProgreso != null,
+                        supportingText = { if (errorProgreso != null) Text(errorProgreso!!) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { 
+                            editandoProgreso = false
+                            nuevoProgresoStr = actividad.progreso.toString()
+                            errorProgreso = null
+                        }) {
+                            Text("Cancelar")
+                        }
+                        Button(onClick = {
+                            val valor = nuevoProgresoStr.toIntOrNull()
+                            // Validación de rango (Criterio 4)
+                            if (valor == null || valor < 0 || valor > 100) {
+                                errorProgreso = "Ingresa un valor entre 0 y 100"
+                            } else {
+                                // Sincronización de interfaz (Mitigación de riesgo)
+                                onGuardarProgreso(actividad.copy(progreso = valor))
+                                editandoProgreso = false
+                                errorProgreso = null
+                            }
+                        }) {
+                            Text("Guardar")
+                        }
+                    }
+                }
+
+                // Barra visual (Criterio 2)
                 LinearProgressIndicator(
                     progress = { actividad.progreso / 100f },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp),
+                    color = if (actividad.progreso >= 100) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
             }
         }
