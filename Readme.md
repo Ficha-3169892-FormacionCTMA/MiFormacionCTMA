@@ -1,75 +1,64 @@
-# Mi Formación CTMA
+# Mi Formación CTMA 🚀
 
-Aplicación móvil nativa en Android construida para optimizar la organización, trazabilidad y gestión de compromisos formativos de los aprendices.
-
----
-
-## 1. Propósito y Descripción del Problema
-Los aprendices suelen administrar actividades, enlaces, evidencias y fechas en diferentes canales de comunicación. Esto produce olvidos, duplicación de trabajo y poca trazabilidad. **Mi Formación CTMA** resuelve este problema centralizando el progreso en una interfaz moderna, accesible y adaptable basada en **Jetpack Compose** y **Material Design 3**.
+Aplicación móvil nativa en Android construida para optimizar la organización, trazabilidad y gestión de compromisos formativos de los aprendices del SENA.
 
 ---
 
-## 2. Usuarios y Necesidades
-
-| Actor | Necesidad Inicial | Valor Esperado |
-| :--- | :--- | :--- |
-| **Aprendiz** | Consultar compromisos, jerarquizar prioridades y monitorear el avance general de su proceso. | Organización centralizada, baja carga cognitiva y visibilidad inmediata de entregas. |
-| **Instructor** | Comunicar actividades formativas y verificar criterios de avance. | Trazabilidad clara de resultados de aprendizaje. |
+## 1. Propósito y Descripción
+**Mi Formación CTMA** centraliza la administración de evidencias y actividades formativas en una interfaz moderna basada en **Jetpack Compose** y **Material Design 3**. La app elimina la fragmentación de información, permitiendo al aprendiz enfocarse en su proceso de aprendizaje con herramientas de seguimiento en tiempo real.
 
 ---
 
-## 3. Arquitectura de Interfaz y Decisiones Técnicas (Semana 03)
+## 2. Arquitectura y Decisiones Técnicas (Estado Actual)
 
-### A. Adaptabilidad Responsiva (Layout Adaptable)
-* **Criterio de Adaptabilidad:** Se implementó una evaluación del ancho disponible en pantalla con el umbral estándar de **`600.dp`**.
-* **Comportamiento Móvil (`< 600.dp`):** La interfaz renderiza una lista de desplazamiento vertical fluido (`LazyColumn`) ideal para interacción a una sola mano en smartphones.
-* **Comportamiento Pantalla Ancha / Tablet (`>= 600.dp`):** La interfaz se reestructura automáticamente a una cuadrícula de dos columnas (`LazyVerticalGrid`), optimizando el aprovechamiento del espacio horizontal sin estirar las tarjetas.
+### A. Gestión Avanzada de Fechas y Retrocompatibilidad
+*   **Selección Inteligente:** Se implementó un `DatePicker` de Material 3 con validación de `SelectableDates` que bloquea automáticamente la selección de fechas pasadas.
+*   **API Desugaring:** Para soportar la lógica de `java.time` en dispositivos antiguos (Android 7.0+ / API 24), se habilitó `isCoreLibraryDesugaringEnabled`, garantizando estabilidad sin sacrificar el uso de APIs modernas de tiempo.
+*   **Utilidades Puras:** La lógica de cálculo de días restantes está desacoplada en `DateUtils.kt`, facilitando las pruebas unitarias.
 
-### B. Rendimiento y Optimización de Listas
-* **Claves Estables (`key = { it.id }`):** Tanto en `LazyColumn` como en `LazyVerticalGrid` se asignó la propiedad única e inmutable `id` de la entidad `ActividadFormativa`. Esto permite que el motor de Jetpack Compose identifique cada elemento de forma única, evitando la recomposición innecesaria de elementos de la lista durante eventos de desplazamiento (scrolling) o mutaciones de datos.
+### B. Experiencia de Usuario Continua (UX/UI)
+*   **Navegación Fluida:** Transiciones interactivas entre pantallas mediante `slideInHorizontally` y `fadeIn`. Se implementó lógica de detección de **"Reducir Movimiento"** del sistema operativo para desactivar animaciones si el usuario lo requiere por accesibilidad.
+*   **Preservación de Estado:** El scroll de la lista (`LazyListState`) se mantiene persistente al navegar hacia el detalle y regresar, eliminando la fricción de búsqueda repetitiva.
+*   **Guía de Onboarding (Empty State):** Sistema de guía de 3 pasos que se activa automáticamente cuando no hay registros, orientando al usuario desde su primera interacción.
 
-### C. Accesibilidad y Diseño Inclusivo (WCAG / Material 3)
-* **Doble Canal de Identificación:** Se implementó una estrategia visual redundante. El estado de las actividades no depende únicamente del color, sino de la combinación simultánea de **color, ícono descriptivo (CheckCircle vs. Warning) y texto explicativo**, garantizando la legibilidad para usuarios con acromatopsia o daltonismo.
-* **Semántica para Lectores de Pantalla:** Los íconos de estado incluyen descripciones textuales explícitas a través de `contentDescription = "Estado: ..."` para asistencia en tecnologías como TalkBack.
-* **Jerarquía Tipográfica y Manejo de Textos Extremos:** La tarjeta (`TarjetaActividad`) utiliza `TextOverflow.Ellipsis` con límite de líneas para soportar nombres extensos sin romper el diseño de la interfaz ni solapar componentes adyacentes.
-
-### D. Panel de Control y Métricas de Rendimiento (Dashboard)
-* **Reducción de Carga Cognitiva:** En lugar de requerir que el usuario procese mentalmente la suma de sus entregas, el componente `EncabezadoFormacion` calcula en tiempo real el porcentaje global de avance y las evidencias completadas, mostrando un indicador visual circular (`CircularProgressIndicator`) y barras de progreso individuales (`LinearProgressIndicator`).
+### C. Seguimiento de Progreso Granular
+*   **Validación de Rango:** El ingreso de progreso (0-100%) cuenta con validación estricta de entrada.
+*   **Reactividad:** La barra de progreso visual y el estado ("En proceso" vs "Completado") se actualizan en tiempo real mediante estados observables (`mutableStateListOf`), asegurando que los cambios en el detalle se reflejen instantáneamente en la lista principal.
 
 ---
 
-## 4. Historias de Usuario e Incremento Desarrollado
+## 3. Historias de Usuario Implementadas
 
-### Historia 1: Interfaz Base y Bienvenida
-* **Como** aprendiz,
-* **quiero** abrir la aplicación y ver un panel con mi nombre y resumen general,
-* **para** confirmar mi estado actual dentro del trimestre formativo.
-> **Criterio de Aceptación:** La app ejecuta `EncabezadoFormacion` calculando el número total de actividades y el porcentaje de cumplimiento de forma dinámica.
+### Historia: Selección de Fecha Límite
+*   **Como** aprendiz, **quiero** seleccionar una fecha desde un calendario, **para** evitar calcular manualmente los días restantes.
+*   **Resultado:** Integración de calendario nativo que convierte fechas a días de forma interna.
 
-### Historia 2: Visualización y Gestión de Compromisos Formativos
-* **Como** aprendiz,
-* **quiero** visualizar la lista completa de actividades con sus prioridades y porcentajes individuales de entrega,
-* **para** enfocar mis esfuerzos en las tareas urgentes.
-> **Criterio de Aceptación:** Las tarjetas de actividad muestran chips de prioridad (ALTA/MEDIA/BAJA), barras de progreso visual y reaccionan correctamente cuando la lista está vacía (`emptyList()`).
+### Historia: Guía de Inicio (Estado Vacío)
+*   **Como** usuario nuevo, **quiero** ver instrucciones claras si no tengo actividades, **para** saber cómo empezar a usar la app.
+*   **Resultado:** Interfaz educativa con ilustración, pasos guiados y botón de acción directa (CTA).
 
-### Historia 3: Estabilidad y Versionado del Repositorio
-* **Como** equipo de desarrollo,
-* **quiero** contar con un repositorio limpio y versionado bajo estándares semánticos de Git,
-* **para** garantizar la evolución continua del proyecto sin subir artefactos temporales de compilación.
-> **Criterio de Aceptación:** Repositorio estructurado con `.gitignore` correcto, sin carpetas `build/` o contraseñas, e incremento registrado bajo la convención *Conventional Commits*: `feat: construye interfaz accesible de actividades de Mi Formación CTMA`.
+### Historia: Seguimiento Preciso de Avance
+*   **Como** aprendiz, **quiero** registrar el porcentaje exacto de mi curso (ej. 45%), **para** tener un control detallado de mi avance.
+*   **Resultado:** Campo numérico validado con actualización visual de barras de progreso.
+
+### Historia: Transiciones Modernas
+*   **Como** usuario, **quiero** ver animaciones fluidas al navegar, **para** sentir una experiencia de aplicación premium y continua.
+*   **Resultado:** Animaciones de transición de 300ms optimizadas para evitar caídas de fotogramas (Jank).
 
 ---
 
-## 5. Requisitos Técnicos
-* **Lenguaje:** Kotlin
-* **Interfaz:** Jetpack Compose (Declarativa)
-* **Componentes de Diseño:** Material Design 3 (`Card`, `Scaffold`, `LazyColumn`, `LazyVerticalGrid`)
-* **Entorno de Desarrollo:** Android Studio
-* **Sistema de Compilación:** Gradle (Kotlin DSL)
+## 4. Requisitos Técnicos
+*   **Mínimo SDK:** 24 (Android 7.0) con Core Library Desugaring.
+*   **Lenguaje:** Kotlin 2.0+
+*   **UI Framework:** Jetpack Compose con Material Design 3.
+*   **Navegación:** Navigation Compose con animaciones personalizadas.
+*   **Iconografía:** Material Icons Extended.
 
 ---
 
-## 6. Forma de Ejecución
-1. Clonar el repositorio localmente:
-   ```bash
-   git clone <URL_DEL_REPOSITORIO>
+## 5. Forma de Ejecución
+1. Clonar el repositorio.
+2. Abrir en **Android Studio Ladybug** o superior.
+3. Ejecutar `Gradle Sync`.
+4. Correr las pruebas unitarias: `./gradlew test`.
+5. Desplegar en un emulador o dispositivo físico.
