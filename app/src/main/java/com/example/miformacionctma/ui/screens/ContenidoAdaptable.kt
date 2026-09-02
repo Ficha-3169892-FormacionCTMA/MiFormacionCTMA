@@ -10,12 +10,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.ui.components.EncabezadoFormacion
+import com.example.miformacionctma.ui.components.GuiaEstadoVacio
 import com.example.miformacionctma.ui.components.TarjetaActividad
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,11 +37,16 @@ fun ContenidoAdaptable(
             CenterAlignedTopAppBar(title = { Text("Mi Formación CTMA") })
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onCrearActividadClick) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar nueva actividad"
-                )
+            // Solo mostramos el FAB si hay actividades, para no duplicar el CTA en estado vacío
+            // o lo dejamos siempre visible según el diseño. Los criterios dicen "incluye un botón directo".
+            // Mantendré el FAB para consistencia, pero el Empty State tendrá su propio botón central.
+            if (actividades.isNotEmpty()) {
+                FloatingActionButton(onClick = onCrearActividadClick) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar nueva actividad"
+                    )
+                }
             }
         },
         modifier = modifier
@@ -51,47 +56,48 @@ fun ContenidoAdaptable(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            EncabezadoFormacion(
-                nombre = "Aprendiz",
-                totalActividades = totalActividades,
-                completadas = completadas
-            )
-
+            // El encabezado solo es relevante si hay algo que resumir o si se quiere mantener siempre.
+            // Según el Criterio 4: "La guía desaparece en cuanto existe al menos una actividad".
+            // Normalmente, el empty state ocupa toda la pantalla debajo del top bar.
+            
             if (actividades.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No hay actividades registradas.",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            } else if (esPantallaAncha) {
-                // Vista en cuadrícula para pantallas anchas
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(items = actividades, key = { it.id }) { actividad ->
-                        TarjetaActividad(
-                            actividad = actividad,
-                            onActividadClick = { onActividadClick(actividad.id.toString()) }
-                        )
-                    }
-                }
+                // Estado Vacío (Criterio 1, 2, 3)
+                GuiaEstadoVacio(
+                    onCrearClick = onCrearActividadClick
+                )
             } else {
-                // Vista en lista vertical para dispositivos móviles
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    items(items = actividades, key = { it.id }) { actividad ->
-                        TarjetaActividad(
-                            actividad = actividad,
-                            onActividadClick = { onActividadClick(actividad.id.toString()) }
-                        )
+                EncabezadoFormacion(
+                    nombre = "Aprendiz",
+                    totalActividades = totalActividades,
+                    completadas = completadas
+                )
+
+                if (esPantallaAncha) {
+                    // Vista en cuadrícula para pantallas anchas
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(items = actividades, key = { it.id }) { actividad ->
+                            TarjetaActividad(
+                                actividad = actividad,
+                                onActividadClick = { onActividadClick(actividad.id.toString()) }
+                            )
+                        }
+                    }
+                } else {
+                    // Vista en lista vertical para dispositivos móviles
+                    LazyColumn(
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        items(items = actividades, key = { it.id }) { actividad ->
+                            TarjetaActividad(
+                                actividad = actividad,
+                                onActividadClick = { onActividadClick(actividad.id.toString()) }
+                            )
+                        }
                     }
                 }
             }
