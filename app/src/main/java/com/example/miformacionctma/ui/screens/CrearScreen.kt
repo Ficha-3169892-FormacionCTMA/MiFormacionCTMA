@@ -93,7 +93,6 @@ fun CrearScreen(
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     // Bloquea fechas pasadas (Criterio de Aceptación 2)
-                    // Usamos la fecha de hoy al inicio del día en la zona horaria local
                     val hoyMillis = LocalDate.now(ZoneId.systemDefault())
                         .atStartOfDay(ZoneId.systemDefault())
                         .toInstant()
@@ -155,8 +154,9 @@ fun CrearScreen(
                         descripcion = descripcion.trim(),
                         prioridad = Prioridad.valueOf(prioridad),
                         progreso = 0,
-                        // Cálculo: Convierte la fecha a días internamente (Criterio de Aceptación 4)
-                        diasRestantes = DateUtils.calcularDiasRestantes(fechaLimiteMillis)
+                        diasRestantes = DateUtils.calcularDiasRestantes(fechaLimiteMillis),
+                        // Guardamos la fecha formateada para mostrarla en la tarjeta
+                        fechaLimite = DateUtils.formatToDisplay(fechaLimiteMillis)
                     )
                     onGuardar(nuevaActividad)
                 }
@@ -213,12 +213,12 @@ fun FormularioActividadContent(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Campo: Fecha Límite (Criterio de Aceptación 1 y 3)
+        // Campo: Fecha Límite
         OutlinedTextField(
             value = DateUtils.formatToDisplay(uiState.fechaLimiteMillis),
             onValueChange = { },
             readOnly = true,
-            enabled = false, // Para que el clic lo maneje el Box/Modifier
+            enabled = false,
             label = { Text("Fecha límite *") },
             placeholder = { Text("DD/MM/AAAA") },
             supportingText = {
