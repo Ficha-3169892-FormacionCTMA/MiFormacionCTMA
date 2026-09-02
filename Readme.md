@@ -1,125 +1,91 @@
 ﻿# Informe de Desarrollo: Mi Formación CTMA
 
-## Actividad: Desarrollo de Aplicación Móvil con Jetpack Compose y Navegación Robusta
+## Actividad: Desarrollo de Aplicación Móvil con Jetpack Compose y Persistencia Local
 **Responsable Técnico:** Wilson Castro Gil  
 **Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
-**Rama Principal de Trabajo:** `feat/thomas`  
+**Rama Principal de Trabajo:** `feat/persistencia-room`  
 **Scrum Master:** Thomas
 
 ---
 
 ## 1. Contexto del Proyecto
-"Mi Formación CTMA" es una solución móvil diseñada bajo el paradigma de desarrollo moderno en Android. El objetivo principal es la gestión eficiente de compromisos formativos, permitiendo el seguimiento de progreso, priorización de tareas y visualización detallada de actividades técnicas en un entorno académico y profesional.
+"Mi Formación CTMA" es una solución móvil profesional diseñada bajo el paradigma de desarrollo moderno en Android. Su propósito es la gestión eficiente de compromisos formativos, permitiendo el seguimiento de progreso, priorización mediante lógica de colores y persistencia de datos a largo plazo en un entorno académico y profesional.
 
 ---
 
-## 2. Arquitectura y Tecnologías
-La aplicación sigue una **Arquitectura en Capas (Clean Architecture)** simplificada, promoviendo la inmutabilidad y la separación de responsabilidades:
-*   **Lenguaje:** Kotlin 2.0.21
-*   **UI Toolkit:** Jetpack Compose con Material Design 3
-*   **Navegación:** Navigation Compose con Seguridad de Tipos (Type-safe)
-*   **Serialización:** Kotlinx Serialization
-*   **Gestión de Estado:** Unidirectional Data Flow (UDF), State Hoisting y **ViewModel (StateFlow)**.
-*   **Reactividad:** Uso de operadores `combine` y `update` para procesamiento de datos en tiempo real.
+## 2. Arquitectura y Tecnologías (MAD Stack)
+La aplicación sigue una **Arquitectura de Capas (Clean Architecture)** orientada a la mantenibilidad y escalabilidad:
+*   **Lenguaje:** Kotlin 2.0.21 (Compilador K2).
+*   **UI Toolkit:** Jetpack Compose con Material Design 3.
+*   **Gestión de Estado:** ViewModel con StateFlow y flujos reactivos (`Flow`).
+*   **Navegación:** Navigation Compose con Seguridad de Tipos (Type-safe).
+*   **Persistencia Local:** **Room 3.0.2** (SQLite) como fuente única de verdad.
+*   **Preferencias:** **Preferences DataStore 1.2.1** para ajustes del usuario.
+*   **Procesamiento:** Operadores reactivos avanzados (`combine`, `asSequence`).
 
 ---
 
-## 3. Procesos y Componentes Implementados
+## 3. Implementaciones Detalladas (Semana 6)
 
-### A. Modelo de Dominio y Lógica Pura (`domain`)
-*   **`ActividadFormativa`**: Modelo de datos inmutable que encapsula la identidad y estado de cada tarea.
-*   **`ReglasActividad`**: Objeto centralizado de lógica de negocio. Realiza validaciones estrictas (título de 3 a 80 caracteres) y cálculos dinámicos de estado (Pendiente, En Progreso, Completada, Vencida).
+### A. Capa de Datos y Fuente Única de Verdad
+*   **Room Database**: Implementación de `FormacionDatabase` con soporte para relaciones 1:N entre Competencias y Actividades.
+*   **Evolución del Esquema**: Gestión de migración segura (Versión 1 ➔ 2) incorporando el estado de completitud sin pérdida de información.
+*   **Repositorios Desacoplados**: Uso de interfaces en la capa de dominio (`ActividadRepository`) implementadas en la capa de datos (`RoomActividadRepository`), aislando la UI de los detalles de almacenamiento.
 
-### B. Navegación Segura y Gestión de Pila (`AppNavigation`)
-*   **Rutas Serializables**: Implementación de `ListaRoute`, `CrearRoute` y `DetalleRoute(actividadId: String)` utilizando tipos fuertemente tipados.
-*   **Integración con ViewModel**: La navegación consume el estado global de forma reactiva, asegurando que los datos se mantengan sincronizados al navegar entre pantallas.
+### B. Funcionalidades de Usuario (HU 05 - HU 08)
+*   **HU 05 - Búsqueda Reactiva**: Filtrado instantáneo por título en la barra superior.
+*   **HU 06 - Priorización Visual**: Tarjetas con chips de colores semánticos (Rojo/Naranja/Azul) según la urgencia.
+*   **HU 07 - Filtrado Persistente**: Segmentación por prioridad que se mantiene tras cerrar la aplicación (DataStore).
+*   **HU 08 - Ordenación Inteligente**: Reordenamiento dinámico por fecha de vencimiento.
 
-### C. Interfaz Adaptativa y Reutilizable (`ui.screens` & `ui.components`)
-*   **`PantallaActividades`**: Implementa `BoxWithConstraints` para alternar entre `LazyColumn` y `LazyVerticalGrid` según el ancho del dispositivo.
-*   **`TarjetaActividad`**: Ahora mejorada con **PrioridadChips** (HU 06) que utilizan colores semánticos (Rojo, Naranja, Azul) para una priorización visual inmediata.
-
-### D. Gestión de Detalle y Resiliencia (`PantallaDetalle`)
-*   **`DetalleUiState`**: Interfaz sellada para gestionar estados de `Cargando`, `Exito` y `NoEncontrada`, garantizando una experiencia de usuario robusta ante errores de ID.
-
-### E. Formularios Interactivos y Captura de Datos (`PantallaCrearActividad`)
-*   **Validación en Tiempo Real**: Implementación de `FormularioActividadUiState` para mostrar errores solo tras el primer intento de guardado.
-*   **Control de Progreso y Fecha**: Integración de `Slider` y `DatePicker` interactivos.
+### C. Interfaz y Experiencia (UX/UI)
+*   **Layout Adaptable**: Detección de ancho de pantalla para alternar entre lista y cuadrícula.
+*   **Validación de Negocio**: Formulario controlado con reglas puras para fechas, títulos y descripciones.
 
 ---
 
-## 4. Nuevas Funcionalidades - Semana 4 (Historias de Usuario)
-El día de hoy se han integrado las siguientes mejoras críticas al núcleo del proyecto:
-
-*   **HU 05: Búsqueda en Tiempo Real**: Barra de búsqueda reactiva que filtra la lista por título instantáneamente mientras el usuario escribe.
-*   **HU 06: Visualización de Prioridad con Chips**: Integración de `AssistChip` con colores semánticos en las tarjetas para identificar urgencias de un vistazo.
-*   **HU 07: Filtrado por Nivel de Prioridad**: Fila de `FilterChip` interactivos para segmentar la lista por categorías (Alta, Media, Baja).
-*   **HU 08: Ordenación por Vencimiento**: Botón de acción en la `TopBar` que organiza las actividades priorizando las fechas de entrega más próximas.
-
----
-
-## 5. Flujo de Trabajo (Git Workflow)
-El desarrollo se ha orquestado bajo la metodología Scrum, liderado por **Thomas (Scrum Master)**. Todo el código y los incrementos de funcionalidad se han consolidado en la rama de característica `feat/thomas`.
+## 4. Aseguramiento de Calidad (QA)
+Se ha implementado una infraestructura de pruebas de nivel industrial:
+*   **Tests Unitarios (ViewModel)**: 13 casos de prueba que validan el 100% de la lógica de filtrado y ordenación.
+*   **Tests de Integración (Room)**: Validación del DAO y procesos de migración de base de datos.
+*   **Estado Final**: **100% de éxito** en la ejecución de la suite de pruebas automatizadas.
+*   **Higiene**: Código libre de advertencias y optimizado para rendimiento de memoria.
 
 ---
 
-## 6. Aseguramiento de Calidad y Pruebas Unitarias (02/09/2026)
-Se ha implementado una suite de pruebas automatizadas para garantizar la estabilidad de las reglas de negocio y las Historias de Usuario:
+## 5. Diagramas Técnicos
 
-*   **Suite de Pruebas**: [ActividadesViewModelTest.kt](file:///C:/Users/Sena/AndroidStudioProjects/MiFormacionCTMA/app/src/test/java/com/example/miformacionctma/ActividadesViewModelTest.kt)
-*   **Cobertura de HU**:
-    *   ✅ **HU 05 (Búsqueda)**: Validado que el filtrado por título es preciso e insensible a mayúsculas/minúsculas.
-    *   ✅ **HU 07 (Filtrado)**: Confirmado que la segmentación por prioridad ALTA aísla correctamente los registros.
-    *   ✅ **HU 08 (Ordenación)**: Verificado que el algoritmo de ordenamiento posiciona correctamente las tareas más urgentes al inicio.
-    *   ✅ **Filtros Combinados**: Verificación exitosa de la coexistencia de búsqueda y filtros de prioridad.
-*   **Resultado Final**: 14 pruebas ejecutadas, **14 pruebas pasadas (100% de éxito)**.
-
----
-
-## 7. Diagramas Técnicos
-
-### Mapa de Navegación
+### Arquitectura de Persistencia y Flujo de Datos
 ```mermaid
 graph TD
-    A[ListaRoute] -->|onCrearClick| B[CrearRoute]
-    A -->|onActividadClick id| C[DetalleRoute]
-    B -->|onActividadGuardada / popBackStack| A
-    C -->|onVolverClick / popBackStack| A
+    A[Compose UI] -->|Eventos| B[ViewModel]
+    B -->|Interfaces| C[Repository]
+    C -->|CRUD Observable| D[Room / SQLite]
+    C -->|Ajustes| E[Preferences DataStore]
+    D -->|Flow| C
+    E -->|Flow| C
+    C -->|UiState Flow| B
+    B -->|State Flow| A
 ```
 
-### Flujo de Estado con ViewModel (HU 05-08)
+### Ciclo de Navegación
 ```mermaid
 graph TD
-    A[Búsqueda Query] --> D[Operador Combine]
-    B[Filtro Prioridad] --> D
-    C[Estado Ordenación] --> D
-    D --> E[listaFiltrada: StateFlow]
-    E -->|Data Down| F[PantallaActividades]
+    L[ListaRoute] -->|Filtros/Orden| L
+    L -->|Crear| C[CrearRoute]
+    L -->|Ver| D[DetalleRoute]
+    C -->|Guardar| L
+    D -->|Volver| L
 ```
 
 ---
 
-## 8. Matriz de Continuidad y Evolución del Proyecto
-Esta tabla recalca la evolución desde la base hasta las funcionalidades avanzadas actuales:
+## 6. Mapeo de Componentes Técnicos
 
-| Componente | Semana 3 | Semana 4 (Base) | Semana 4 (HU 05-08) |
-| --- | --- | --- | --- |
-| **Navegación** | Pantalla Única | NavHost con Type-safety | Navegación sincronizada con ViewModel |
-| **Estado** | Datos Estáticos | Lista Observable | **Filtrado y Ordenación Reactiva** |
-| **Formulario** | No existía | Validación básica | Validación en tiempo real y UI State |
-| **Búsqueda** | N/A | N/A | **Búsqueda instantánea en TopBar** |
-| **Priorización** | Texto plano | Chips simples | **Chips con Colores Semánticos** |
-| **Ordenación** | N/A | N/A | **Orden inteligente por vencimiento** |
-
----
-
-## 9. Mapeo de Componentes (Material de Estudio)
-
-| Componente | Uso en Proyecto | Descripción Técnica |
+| Componente | Implementación | Propósito Técnico |
 | --- | --- | --- |
-| **ViewModel** | ActividadesViewModel | Centraliza la lógica y sobrevive a cambios de configuración. |
-| **StateFlow** | uiState | Expone un flujo de estado reactivo a la UI. |
-| **combine** | Filtrado de Lista | Combina múltiples estados en una vista filtrada única. |
-| **rememberSaveable** | Formularios | Conserva el estado ante recreación de la Activity. |
-| **UDF** | Todo el flujo | Datos bajan (State), Eventos suben (Callbacks). |
-| **Safe Navigation** | NavHost | Navegación con tipos serializables y seguridad de tipos. |
-| **Assist/Filter Chips** | Prioridades y Filtros | Componentes M3 para interacción y contexto visual rápido. |
+| **Room 3** | `ActividadDao` | Persistencia estructurada y consultas observables. |
+| **DataStore** | `PreferenciasRepository` | Persistencia de estado de UI y filtros. |
+| **ViewModel** | `ActividadesViewModel` | Orquestación de flujos de múltiples repositorios. |
+| **UDF** | Todo el flujo | Asegura una única vía de actualización de estado. |
+| **Type-safe Nav** | `AppNavigation` | Navegación robusta basada en objetos serializables. |

@@ -10,5 +10,5 @@ data class ActividadFormativa(
     val progreso: Int,
     val diasRestantes: Int,
     val estado: EstadoActividad,
-    val prioridad: Prioridad = Prioridad.MEDIA
+    val prioridad: Prioridad = Prioridad.MEDIA,
 )

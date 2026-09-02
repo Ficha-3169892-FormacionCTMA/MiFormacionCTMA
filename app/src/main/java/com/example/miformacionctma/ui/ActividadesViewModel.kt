@@ -1,51 +1,55 @@
 package com.example.miformacionctma.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import com.example.miformacionctma.ActividadesApplication
 import com.example.miformacionctma.domain.ActividadFormativa
-import com.example.miformacionctma.domain.MockData
+import com.example.miformacionctma.domain.ActividadRepository
+import com.example.miformacionctma.domain.PreferenciasRepository
+import com.example.miformacionctma.domain.PreferenciasUsuario
 import com.example.miformacionctma.domain.Prioridad
-import com.example.miformacionctma.domain.ReglasActividad
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 data class ActividadesUiState(
     val actividadesVisibles: List<ActividadFormativa> = emptyList(),
     val searchQuery: String = "",
-    val filtroPrioridad: Prioridad? = null,
-    val ordenadoPorVencimiento: Boolean = false,
+    val preferencias: PreferenciasUsuario = PreferenciasUsuario(),
     val actividadSeleccionada: ActividadFormativa? = null,
 )
 
-class ActividadesViewModel : ViewModel() {
+class ActividadesViewModel(
+    private val actividadRepository: ActividadRepository,
+    private val preferenciasRepository: PreferenciasRepository,
+) : ViewModel() {
 
-    private val _actividadesOriginales = MutableStateFlow<List<ActividadFormativa>>(emptyList())
     private val _searchQuery = MutableStateFlow("")
-    private val _filtroPrioridad = MutableStateFlow<Prioridad?>(null)
-    private val _ordenadoPorVencimiento = MutableStateFlow(value = false)
-    private val _actividadSeleccionada = MutableStateFlow<ActividadFormativa?>(null)
+    private val _actividadSeleccionadaId = MutableStateFlow<Long?>(null)
 
     val uiState: StateFlow<ActividadesUiState> = combine(
-        _actividadesOriginales,
+        actividadRepository.observarTodos(),
         _searchQuery,
-        _filtroPrioridad,
-        _ordenadoPorVencimiento,
-        _actividadSeleccionada,
-    ) { lista, query, prioridad, ordenado, seleccionada ->
+        preferenciasRepository.preferencias,
+        _actividadSeleccionadaId,
+    ) { lista, query, prefs, seleccionadaId ->
         
         val filtradas = lista.asSequence()
             .filter { it.titulo.contains(query, ignoreCase = true) }
-            .filter { (prioridad == null) || (it.prioridad == prioridad) }
+            .filter { (prefs.filtroPrioridad == null) || (it.prioridad == prefs.filtroPrioridad) }
             .toList()
             .let { 
-                if (ordenado) it.sortedBy { a -> a.diasRestantes } else it 
+                if (prefs.ordenadoPorVencimiento) it.sortedBy { a -> a.diasRestantes } else it 
             }
+
+        val seleccionada = if (seleccionadaId != null) lista.find { it.id == seleccionadaId } else null
 
         ActividadesUiState(
             actividadesVisibles = filtradas,
             searchQuery = query,
-            filtroPrioridad = prioridad,
-            ordenadoPorVencimiento = ordenado,
-            actividadSeleccionada = seleccionada
+            preferencias = prefs,
+            actividadSeleccionada = seleccionada,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -53,20 +57,21 @@ class ActividadesViewModel : ViewModel() {
         initialValue = ActividadesUiState(),
     )
 
-    init {
-        _actividadesOriginales.value = MockData.listaActividades
-    }
-
     fun buscar(query: String) {
         _searchQuery.value = query
     }
 
     fun filtrarPorPrioridad(prioridad: Prioridad?) {
-        _filtroPrioridad.value = prioridad
+        viewModelScope.launch {
+            preferenciasRepository.guardarFiltroPrioridad(prioridad)
+        }
     }
 
     fun alternarOrden() {
-        _ordenadoPorVencimiento.value = !_ordenadoPorVencimiento.value
+        viewModelScope.launch {
+            val actual = uiState.value.preferencias.ordenadoPorVencimiento
+            preferenciasRepository.guardarOrdenadoPorVencimiento(!actual)
+        }
     }
 
     fun guardarActividad(
@@ -76,57 +81,54 @@ class ActividadesViewModel : ViewModel() {
         prioridad: Prioridad, 
         fechaMillis: Long,
     ) {
-        val hoy = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.HOUR_OF_DAY, 0)
-            set(java.util.Calendar.MINUTE, 0)
-            set(java.util.Calendar.SECOND, 0)
-            set(java.util.Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        
-        val diasRestantes = ((fechaMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
+        viewModelScope.launch {
+            val hoy = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            
+            val diasRestantes = ((fechaMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
 
-        val nuevaActividad = ActividadFormativa(
-            id = (_actividadesOriginales.value.maxOfOrNull { it.id } ?: 0L) + 1L,
-            titulo = titulo,
-            descripcion = descripcion,
-            progreso = progreso,
-            prioridad = prioridad,
-            diasRestantes = diasRestantes,
-            estado = ReglasActividad.obtenerEstado(progreso, diasRestantes),
-        )
-        
-        _actividadesOriginales.update { it + nuevaActividad }
+            val nuevaActividad = ActividadFormativa(
+                id = 0, // Room generará el ID automáticamente
+                titulo = titulo,
+                descripcion = descripcion,
+                progreso = progreso,
+                prioridad = prioridad,
+                diasRestantes = diasRestantes,
+                estado = com.example.miformacionctma.domain.ReglasActividad.obtenerEstado(progreso, diasRestantes),
+            )
+            actividadRepository.guardar(nuevaActividad)
+        }
     }
 
     fun seleccionarActividad(id: Long) {
-        val encontrada = _actividadesOriginales.value.find { it.id == id }
-        _actividadSeleccionada.value = encontrada
+        _actividadSeleccionadaId.value = id
     }
 
     @Suppress("unused")
     fun alternarEstadoActividad(id: Long) {
-        _actividadesOriginales.update { lista ->
-            lista.map { actividad ->
-                if (actividad.id == id) {
-                    val nuevoProgreso = if (actividad.progreso == 100) 0 else 100
-                    actividad.copy(
-                        progreso = nuevoProgreso,
-                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, actividad.diasRestantes)
-                    )
-                } else {
-                    actividad
-                }
+        viewModelScope.launch {
+            val actividad = uiState.value.actividadesVisibles.find { it.id == id }
+            actividad?.let {
+                val nuevoProgreso = if (it.progreso == 100) 0 else 100
+                actividadRepository.guardar(it.copy(progreso = nuevoProgreso))
             }
         }
-        
-        // Actualizar también la seleccionada si coincide
-        if (_actividadSeleccionada.value?.id == id) {
-            val actual = _actividadSeleccionada.value!!
-            val nuevoProgreso = if (actual.progreso == 100) 0 else 100
-            _actividadSeleccionada.value = actual.copy(
-                progreso = nuevoProgreso,
-                estado = ReglasActividad.obtenerEstado(nuevoProgreso, actual.diasRestantes)
-            )
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as ActividadesApplication
+                return ActividadesViewModel(
+                    application.actividadRepository,
+                    application.preferenciasRepository,
+                ) as T
+            }
         }
     }
 }

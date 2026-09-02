@@ -22,7 +22,7 @@ object CrearRoute
 
 @Composable
 fun AppNavigation(
-    viewModel: ActividadesViewModel = viewModel(),
+    viewModel: ActividadesViewModel = viewModel(factory = ActividadesViewModel.Factory),
 ) {
     val navController = rememberNavController()
     val uiState by viewModel.uiState.collectAsState()
@@ -36,9 +36,9 @@ fun AppNavigation(
                 actividades = uiState.actividadesVisibles,
                 searchQuery = uiState.searchQuery,
                 onSearchChange = { viewModel.buscar(it) },
-                prioridadSeleccionada = uiState.filtroPrioridad,
+                prioridadSeleccionada = uiState.preferencias.filtroPrioridad,
                 onPrioridadFilterClick = { viewModel.filtrarPorPrioridad(it) },
-                ordenadoPorVencimiento = uiState.ordenadoPorVencimiento,
+                ordenadoPorVencimiento = uiState.preferencias.ordenadoPorVencimiento,
                 onSortClick = { viewModel.alternarOrden() },
                 onActividadClick = { actividad ->
                     viewModel.seleccionarActividad(actividad.id)

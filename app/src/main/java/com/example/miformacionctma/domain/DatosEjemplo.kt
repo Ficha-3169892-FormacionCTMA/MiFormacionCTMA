@@ -1,5 +1,6 @@
 package com.example.miformacionctma.domain
 
+@Suppress("unused")
 object MockData {
     val listaActividades = listOf(
         ActividadFormativa(
@@ -9,7 +10,7 @@ object MockData {
             progreso = 100,
             prioridad = Prioridad.ALTA,
             diasRestantes = 0,
-            estado = EstadoActividad.COMPLETADA
+            estado = EstadoActividad.COMPLETADA,
         ),
         ActividadFormativa(
             id = 2L,
@@ -18,7 +19,7 @@ object MockData {
             progreso = 60,
             prioridad = Prioridad.ALTA,
             diasRestantes = 3,
-            estado = EstadoActividad.EN_PROGRESO
+            estado = EstadoActividad.EN_PROGRESO,
         ),
         ActividadFormativa(
             id = 3L,
@@ -27,7 +28,7 @@ object MockData {
             progreso = 30,
             prioridad = Prioridad.MEDIA,
             diasRestantes = 5,
-            estado = EstadoActividad.EN_PROGRESO
+            estado = EstadoActividad.EN_PROGRESO,
         ),
         ActividadFormativa(
             id = 4L,
@@ -36,7 +37,7 @@ object MockData {
             progreso = 20,
             prioridad = Prioridad.BAJA,
             diasRestantes = -2,
-            estado = EstadoActividad.VENCIDA
+            estado = EstadoActividad.VENCIDA,
         ),
         ActividadFormativa(
             id = 5L,
@@ -45,7 +46,7 @@ object MockData {
             progreso = 85,
             prioridad = Prioridad.ALTA,
             diasRestantes = 2,
-            estado = EstadoActividad.EN_PROGRESO
+            estado = EstadoActividad.EN_PROGRESO,
         ),
         ActividadFormativa(
             id = 6L,
@@ -54,7 +55,7 @@ object MockData {
             progreso = 45,
             prioridad = Prioridad.ALTA,
             diasRestantes = 4,
-            estado = EstadoActividad.EN_PROGRESO
+            estado = EstadoActividad.EN_PROGRESO,
         ),
         ActividadFormativa(
             id = 7L,
@@ -63,7 +64,7 @@ object MockData {
             progreso = 20,
             prioridad = Prioridad.MEDIA,
             diasRestantes = 7,
-            estado = EstadoActividad.PENDIENTE
+            estado = EstadoActividad.PENDIENTE,
         ),
         ActividadFormativa(
             id = 8L,
@@ -72,7 +73,7 @@ object MockData {
             progreso = 10,
             prioridad = Prioridad.MEDIA,
             diasRestantes = 8,
-            estado = EstadoActividad.PENDIENTE
+            estado = EstadoActividad.PENDIENTE,
         ),
         ActividadFormativa(
             id = 9L,
@@ -81,7 +82,7 @@ object MockData {
             progreso = 50,
             prioridad = Prioridad.BAJA,
             diasRestantes = 12,
-            estado = EstadoActividad.EN_PROGRESO
+            estado = EstadoActividad.EN_PROGRESO,
         ),
         ActividadFormativa(
             id = 10L,
@@ -90,7 +91,7 @@ object MockData {
             progreso = 15,
             prioridad = Prioridad.ALTA,
             diasRestantes = 15,
-            estado = EstadoActividad.PENDIENTE
-        )
+            estado = EstadoActividad.PENDIENTE,
+        ),
     )
 }

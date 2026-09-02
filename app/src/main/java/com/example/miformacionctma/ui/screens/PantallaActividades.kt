@@ -11,10 +11,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -46,9 +46,9 @@ fun PantallaActividades(
                     actions = {
                         IconButton(onClick = onSortClick) {
                             Icon(
-                                Icons.AutoMirrored.Filled.List, 
+                                Icons.Default.Menu, 
                                 contentDescription = "Ordenar",
-                                tint = if (ordenadoPorVencimiento) MaterialTheme.colorScheme.primary else Color.Gray
+                                tint = if (ordenadoPorVencimiento) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
