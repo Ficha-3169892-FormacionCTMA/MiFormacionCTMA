@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
 
                     // Grafo de navegación principal
                     MiFormacionNavHost(
-                        actividades = listaActividades,
+                        actividades = listaActividades ,
                         onGuardarNuevaActividad = { nuevaActividad ->
                             // Uso de ReglasActividad para validar antes de agregar
                             val errores = ReglasActividad.validarActividad(nuevaActividad)
