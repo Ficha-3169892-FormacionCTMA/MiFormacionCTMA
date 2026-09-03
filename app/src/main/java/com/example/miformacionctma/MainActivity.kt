@@ -1,6 +1,7 @@
 package com.example.miformacionctma
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ReglasActividad
 import com.example.miformacionctma.ui.navigation.MiFormacionNavHost
 import com.example.miformacionctma.ui.theme.MiFormacionCTMATheme
 
@@ -62,12 +64,21 @@ class MainActivity : ComponentActivity() {
                     MiFormacionNavHost(
                         actividades = listaActividades,
                         onGuardarNuevaActividad = { nuevaActividad ->
-                            listaActividades.add(0, nuevaActividad) // Agrega la nueva actividad al inicio
+                            // Uso de ReglasActividad para validar antes de agregar
+                            val errores = ReglasActividad.validarActividad(nuevaActividad)
+                            if (errores.isEmpty()) {
+                                listaActividades.add(0, nuevaActividad)
+                            } else {
+                                Log.e("MainActivity", "Errores de validación: $errores")
+                            }
                         },
                         onUpdateActividad = { actividadActualizada ->
                             val index = listaActividades.indexOfFirst { it.id == actividadActualizada.id }
                             if (index != -1) {
-                                listaActividades[index] = actividadActualizada
+                                // También validamos al actualizar
+                                if (ReglasActividad.validarActividad(actividadActualizada).isEmpty()) {
+                                    listaActividades[index] = actividadActualizada
+                                }
                             }
                         }
                     )

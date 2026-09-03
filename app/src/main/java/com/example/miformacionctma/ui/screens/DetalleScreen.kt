@@ -155,7 +155,7 @@ fun DetalleActividadContent(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = if (actividad.descripcion.isNotBlank()) actividad.descripcion else "Sin descripción adicional.",
+                    text = actividad.descripcion.ifBlank { "Sin descripción adicional." },
                     style = MaterialTheme.typography.bodyMedium
                 )
 

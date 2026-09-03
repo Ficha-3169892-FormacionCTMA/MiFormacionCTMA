@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ReglasActividad
 import com.example.miformacionctma.utils.DateUtils
 import java.time.LocalDate
 import java.time.ZoneId
@@ -38,26 +39,7 @@ data class FormularioActividadUiState(
                 fechaLimiteMillis != null
 }
 
-// 2. Funciones puras de validación
-fun validarTitulo(valor: String, mostrarVacio: Boolean): String? {
-    val limpio = valor.trim()
-    return when {
-        limpio.isEmpty() && mostrarVacio -> "Escribe un título para la actividad"
-        limpio.isNotEmpty() && limpio.length < 3 -> "Usa al menos 3 caracteres"
-        limpio.length > 80 -> "Usa máximo 80 caracteres"
-        else -> null
-    }
-}
-
-fun validarDescripcion(valor: String): String? {
-    return if (valor.length > 240) "Usa máximo 240 caracteres" else null
-}
-
-fun validarFecha(fecha: Long?, mostrarVacio: Boolean): String? {
-    return if (fecha == null && mostrarVacio) "Selecciona una fecha límite" else null
-}
-
-// 3. Pantalla contenedora de Estado (Stateful Screen)
+// 2. Pantalla contenedora de Estado (Stateful Screen)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearScreen(
@@ -65,30 +47,37 @@ fun CrearScreen(
     onVolver: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var titulo by rememberSaveable { mutableStateOf("") }
-    var descripcion by rememberSaveable { mutableStateOf("") }
-    var prioridad by rememberSaveable { mutableStateOf("MEDIA") }
-    var fechaLimiteMillis by rememberSaveable { mutableStateOf<Long?>(null) }
-    var intentoGuardar by rememberSaveable { mutableStateOf(false) }
+    // Para corregir las alertas "Assigned value is never read", usamos MutableState directamente.
+    // Esto asegura que el compilador entienda la mutación del estado dentro de las lambdas.
+    val tituloState = rememberSaveable { mutableStateOf("") }
+    val descripcionState = rememberSaveable { mutableStateOf("") }
+    val prioridadState = rememberSaveable { mutableStateOf("MEDIA") }
+    val fechaLimiteMillisState = rememberSaveable { mutableStateOf<Long?>(null) }
+    val intentoGuardarState = rememberSaveable { mutableStateOf(false) }
 
-    val tituloError = validarTitulo(titulo, mostrarVacio = intentoGuardar)
-    val descripcionError = validarDescripcion(descripcion)
-    val fechaError = validarFecha(fechaLimiteMillis, mostrarVacio = intentoGuardar)
+    // Evaluaciones dinámicas de validación centralizadas en el domain
+    val uiState = remember(
+        tituloState.value, 
+        descripcionState.value, 
+        prioridadState.value, 
+        fechaLimiteMillisState.value, 
+        intentoGuardarState.value
+    ) {
+        FormularioActividadUiState(
+            titulo = tituloState.value,
+            descripcion = descripcionState.value,
+            prioridad = prioridadState.value,
+            fechaLimiteMillis = fechaLimiteMillisState.value,
+            tituloError = ReglasActividad.validarTitulo(tituloState.value, intentoGuardarState.value),
+            descripcionError = ReglasActividad.validarDescripcion(descripcionState.value),
+            fechaError = ReglasActividad.validarFecha(fechaLimiteMillisState.value, intentoGuardarState.value),
+            intentoGuardar = intentoGuardarState.value
+        )
+    }
 
-    val uiState = FormularioActividadUiState(
-        titulo = titulo,
-        descripcion = descripcion,
-        prioridad = prioridad,
-        fechaLimiteMillis = fechaLimiteMillis,
-        tituloError = tituloError,
-        descripcionError = descripcionError,
-        fechaError = fechaError,
-        intentoGuardar = intentoGuardar
-    )
+    val showDatePickerState = remember { mutableStateOf(false) }
 
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    if (showDatePicker) {
+    if (showDatePickerState.value) {
         val datePickerState = rememberDatePickerState(
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
@@ -103,17 +92,17 @@ fun CrearScreen(
         )
 
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showDatePickerState.value = false },
             confirmButton = {
                 TextButton(onClick = {
-                    fechaLimiteMillis = datePickerState.selectedDateMillis
-                    showDatePicker = false
+                    fechaLimiteMillisState.value = datePickerState.selectedDateMillis
+                    showDatePickerState.value = false
                 }) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { showDatePickerState.value = false }) {
                     Text("Cancelar")
                 }
             }
@@ -140,23 +129,23 @@ fun CrearScreen(
     ) { paddingValues ->
         FormularioActividadContent(
             uiState = uiState,
-            onTituloChange = { titulo = it.take(80) },
-            onDescripcionChange = { descripcion = it.take(240) },
-            onPrioridadChange = { prioridad = it },
-            onFechaClick = { showDatePicker = true },
-            onLimpiarFecha = { fechaLimiteMillis = null },
+            onTituloChange = { tituloState.value = it.take(80) },
+            onDescripcionChange = { descripcionState.value = it.take(240) },
+            onPrioridadChange = { prioridadState.value = it },
+            onFechaClick = { showDatePickerState.value = true },
+            onLimpiarFecha = { fechaLimiteMillisState.value = null },
             onGuardarClick = {
-                intentoGuardar = true
+                intentoGuardarState.value = true
                 if (uiState.puedeGuardar) {
                     val nuevaActividad = ActividadFormativa(
                         id = System.currentTimeMillis(),
-                        titulo = titulo.trim(),
-                        descripcion = descripcion.trim(),
-                        prioridad = Prioridad.valueOf(prioridad),
+                        titulo = tituloState.value.trim(),
+                        descripcion = descripcionState.value.trim(),
+                        prioridad = Prioridad.valueOf(prioridadState.value),
                         progreso = 0,
-                        diasRestantes = DateUtils.calcularDiasRestantes(fechaLimiteMillis),
+                        diasRestantes = DateUtils.calcularDiasRestantes(fechaLimiteMillisState.value),
                         // Guardamos la fecha formateada para mostrarla en la tarjeta
-                        fechaLimite = DateUtils.formatToDisplay(fechaLimiteMillis)
+                        fechaLimite = DateUtils.formatToDisplay(fechaLimiteMillisState.value)
                     )
                     onGuardar(nuevaActividad)
                 }
@@ -166,7 +155,7 @@ fun CrearScreen(
     }
 }
 
-// 4. Componente de presentación sin estado (Stateless Content)
+// 3. Componente de presentación sin estado (Stateless Content)
 @Composable
 fun FormularioActividadContent(
     uiState: FormularioActividadUiState,
@@ -218,7 +207,7 @@ fun FormularioActividadContent(
             value = DateUtils.formatToDisplay(uiState.fechaLimiteMillis),
             onValueChange = { },
             readOnly = true,
-            enabled = false,
+            enabled = false, // Para que el clic lo maneje el Modifier.clickable
             label = { Text("Fecha límite *") },
             placeholder = { Text("DD/MM/AAAA") },
             supportingText = {
@@ -258,11 +247,11 @@ fun FormularioActividadContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            listOf("BAJA", "MEDIA", "ALTA").forEach { nivel ->
+            Prioridad.entries.forEach { nivel ->
                 FilterChip(
-                    selected = uiState.prioridad == nivel,
-                    onClick = { onPrioridadChange(nivel) },
-                    label = { Text(nivel) }
+                    selected = uiState.prioridad == nivel.name,
+                    onClick = { onPrioridadChange(nivel.name) },
+                    label = { Text(nivel.name) }
                 )
             }
         }
