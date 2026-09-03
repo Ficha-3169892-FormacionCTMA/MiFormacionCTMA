@@ -6,6 +6,7 @@ import com.example.miformacionctma.ui.ActividadesViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -38,16 +39,24 @@ class ActividadesViewModelTest {
     }
 
     @Test
-    fun `HU04 - Al cambiar el filtro, el estado debe actualizar mostrarFinalizadas`() = runTest {
+    fun `HU04 - Historia de Actividades Finalizadas`() = runTest {
+        // Necesitamos recolectar el StateFlow para que se active debido a WhileSubscribed
+        val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect {}
+        }
+
         // Ejecución
         viewModel.toggleMostrarFinalizadas()
+        advanceUntilIdle()
         
         // Verificación
         assertEquals(true, viewModel.uiState.value.mostrarFinalizadas)
+        
+        collectJob.cancel()
     }
 
     @Test
-    fun `HU03 - Al editar una actividad, se debe llamar al repositorio con los datos nuevos`() = runTest {
+    fun `HU03 - Edicion de Actividades Existentes`() = runTest {
         val actividadId = 1
         val actividadOriginal = Actividad(actividadId, "Original", "Desc", Date(), 0f)
         
@@ -65,7 +74,7 @@ class ActividadesViewModelTest {
     }
 
     @Test
-    fun `HU01 - Al agregar actividad se debe persistir en el repositorio`() = runTest {
+    fun `HU01 Persistencia con Room Database`() = runTest {
         // Ejecución
         viewModel.agregarActividad("Nueva Tarea", "Desc")
         advanceUntilIdle()
@@ -75,7 +84,7 @@ class ActividadesViewModelTest {
     }
 
     @Test
-    fun `HU02 - Al eliminar actividad se debe llamar al borrado en el repositorio`() = runTest {
+    fun `HU02 - Eliminación de actividades (deslizar para descartar)`() = runTest {
         val actividad = Actividad(1, "Test", "Desc", Date(), 0f)
         
         // Ejecución

@@ -9,6 +9,7 @@ import androidx.room.TypeConverters
 @Database(entities = [Actividad::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
+
     abstract fun actividadDao(): ActividadDao
 
     companion object {
@@ -17,10 +18,14 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): AppDatabase {
             return Instance ?: synchronized(this) {
-                Room.databaseBuilder(context, AppDatabase::class.java, "actividad_database")
-                    .fallbackToDestructiveMigration()
-                    .build()
-                    .also { Instance = it }
+                Room.databaseBuilder(
+                    context,
+                    AppDatabase::class.java,
+                    "actividad_database"
+                )
+                .fallbackToDestructiveMigration()
+                .build()
+                .also { Instance = it }
             }
         }
     }
