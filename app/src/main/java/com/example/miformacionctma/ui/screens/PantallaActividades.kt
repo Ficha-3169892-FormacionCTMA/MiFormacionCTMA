@@ -19,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
@@ -48,10 +47,10 @@ fun PantallaActividades(
                             Icon(
                                 Icons.Default.Menu, 
                                 contentDescription = "Ordenar",
-                                tint = if (ordenadoPorVencimiento) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = if (ordenadoPorVencimiento) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    }
+                    },
                 )
                 
                 // Barra de Búsqueda (HU 5)
@@ -71,16 +70,16 @@ fun PantallaActividades(
                         }
                     },
                     singleLine = true,
-                    shape = MaterialTheme.shapes.medium
+                    shape = MaterialTheme.shapes.medium,
                 )
 
                 // Contador de resultados (Funcionalidad extra HU 05)
-                if (searchQuery.isNotEmpty() || prioridadSeleccionada != null) {
+                if ((searchQuery.isNotEmpty()) || (prioridadSeleccionada != null)) {
                     Text(
                         text = "Mostrando ${actividades.size} actividades",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
 
@@ -90,7 +89,7 @@ fun PantallaActividades(
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Prioridad.entries.forEach { prioridad ->
                         FilterChip(
@@ -99,7 +98,7 @@ fun PantallaActividades(
                                 if (prioridadSeleccionada == prioridad) onPrioridadFilterClick(null)
                                 else onPrioridadFilterClick(prioridad)
                             },
-                            label = { Text(prioridad.name) }
+                            label = { Text(prioridad.name) },
                         )
                     }
                 }
@@ -109,7 +108,7 @@ fun PantallaActividades(
             FloatingActionButton(onClick = onCrearClick) {
                 Icon(Icons.Default.Add, contentDescription = "Nueva Actividad")
             }
-        }
+        },
     ) { innerPadding ->
         BoxWithConstraints(
             modifier = Modifier
@@ -154,11 +153,11 @@ fun CuadriculaActividades(
         columns = GridCells.Fixed(2),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         items(
             items = actividades,
-            key = { it.id }
+            key = { it.id },
         ) { actividad ->
             TarjetaActividad(actividad = actividad, onActividadClick = onActividadClick)
         }
@@ -169,12 +168,12 @@ fun CuadriculaActividades(
 fun EstadoVacio(hayFiltros: Boolean) {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = if (hayFiltros) "No se encontraron actividades con estos filtros." 
                   else "No hay actividades formativas registradas.",
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
         )
     }
 }
