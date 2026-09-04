@@ -48,10 +48,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
+    implementation(libs.composeUi)
+    implementation(libs.composeGraphics)
+    implementation(libs.composeToolingPreview)
+    implementation(libs.composeMaterial3)
+    implementation(libs.composeIconsCore)
+    implementation(libs.composeIconsExtended)
     implementation(libs.androidx.navigation.compose)
 
     // Room 3
@@ -69,9 +71,10 @@ dependencies {
     
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.composeTestJunit4)
     androidTestImplementation(libs.androidx.room3.testing)
     
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation(libs.composeTooling)
+    debugImplementation(libs.composeTestManifest)
 }
