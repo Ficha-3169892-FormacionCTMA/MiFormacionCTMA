@@ -74,6 +74,16 @@ fun PantallaActividades(
                     shape = MaterialTheme.shapes.medium
                 )
 
+                // Contador de resultados (Funcionalidad extra HU 05)
+                if (searchQuery.isNotEmpty() || prioridadSeleccionada != null) {
+                    Text(
+                        text = "Mostrando ${actividades.size} actividades",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+
                 // Filtros de Prioridad (HU 7)
                 Row(
                     modifier = Modifier
