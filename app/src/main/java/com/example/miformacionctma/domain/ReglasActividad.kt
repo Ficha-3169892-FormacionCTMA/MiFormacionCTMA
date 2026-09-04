@@ -9,7 +9,7 @@ object ReglasActividad {
         if (titulo.isBlank()) {
             add("El título no puede estar vacío.")
         }
-        if (progreso !in 0..100) {
+        if (progreso !in (0..100)) {
             add("El progreso debe estar entre 0 y 100.")
         }
     }
@@ -24,18 +24,21 @@ object ReglasActividad {
         }
     }
 
-    // 3. Actividades urgentes (no completadas con 2 días o menos)
+    // 3. Actividades urgentes (no completadas con 1 día o menos - HU14)
     fun actividadesUrgentes(actividades: List<ActividadFormativa>): List<ActividadFormativa> {
         return actividades.filter { actividad ->
             val estado = obtenerEstado(actividad.progreso, actividad.diasRestantes)
-            estado != EstadoActividad.COMPLETADA && actividad.diasRestantes <= 2
+            (estado != EstadoActividad.COMPLETADA) && (actividad.diasRestantes <= 1)
         }
     }
 
     // 4. Promedio de progreso (manejo de lista vacía sin división por cero)
     fun promedioProgreso(actividades: List<ActividadFormativa>): Double {
         if (actividades.isEmpty()) return 0.0
-        val progresosValidos = actividades.map { it.progreso }.filter { it in 0..100 }
+        val progresosValidos = actividades.asSequence()
+            .map { it.progreso }
+            .filter { it in (0..100) }
+            .toList()
         if (progresosValidos.isEmpty()) return 0.0
         return progresosValidos.average()
     }
@@ -53,9 +56,11 @@ object ReglasActividad {
     // Reto Adicional: Ordenar actividades (Vencidas primero, luego prioridad alta, luego menor días)
     fun ordenarActividades(actividades: List<ActividadFormativa>): List<ActividadFormativa> {
         return actividades.sortedWith(
-            compareByDescending<ActividadFormativa> { obtenerEstado(it.progreso, it.diasRestantes) == EstadoActividad.VENCIDA }
+            compareByDescending<ActividadFormativa> {
+                obtenerEstado(it.progreso, it.diasRestantes) == EstadoActividad.VENCIDA
+            }
                 .thenByDescending { it.prioridad }
-                .thenBy { it.diasRestantes }
+                .thenBy { it.diasRestantes },
         )
     }
 }

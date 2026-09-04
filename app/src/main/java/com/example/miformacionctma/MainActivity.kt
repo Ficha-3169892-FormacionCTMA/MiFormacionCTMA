@@ -6,15 +6,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.ui.screens.PantallaActividades
 import com.example.miformacionctma.ui.theme.MiFormacionCTMATheme
+import com.example.miformacionctma.worker.NotificacionWorker
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        programarNotificaciones()
 
         val listaActividadesFicticias = listOf(
             ActividadFormativa(
@@ -23,7 +30,9 @@ class MainActivity : ComponentActivity() {
                 descripcion = "Modelado de diagramas UML para la fase de análisis.",
                 progreso = 100,
                 prioridad = Prioridad.ALTA,
-                diasRestantes = 0
+                diasRestantes = 0,
+                horas = 12,
+                enlaceEvidencia = "https://example.com/cert1.pdf",
             ),
             ActividadFormativa(
                 id = 2,
@@ -31,7 +40,9 @@ class MainActivity : ComponentActivity() {
                 descripcion = "Desarrollo de endpoints de productos y autenticación.",
                 progreso = 60,
                 prioridad = Prioridad.ALTA,
-                diasRestantes = 3
+                diasRestantes = 0, // HU14: menos de 24h
+                horas = 20,
+                enlaceEvidencia = "https://example.com/repo-api",
             ),
             ActividadFormativa(
                 id = 3,
@@ -39,7 +50,8 @@ class MainActivity : ComponentActivity() {
                 descripcion = "Construcción de componentes accesibles e interfaces adaptables.",
                 progreso = 30,
                 prioridad = Prioridad.MEDIA,
-                diasRestantes = 5
+                diasRestantes = 5,
+                horas = 15,
             ),
             ActividadFormativa(
                 id = 4,
@@ -47,65 +59,27 @@ class MainActivity : ComponentActivity() {
                 descripcion = "Containerización y despliegue de microservicios.",
                 progreso = 0,
                 prioridad = Prioridad.BAJA,
-                diasRestantes = 10
-            ),
-            ActividadFormativa(
-                id = 5,
-                titulo = "Diseño de Base de Datos Relacional",
-                descripcion = "Normalización y creación de modelos ER en PostgreSQL.",
-                progreso = 85,
-                prioridad = Prioridad.ALTA,
-                diasRestantes = 2
-            ),
-            ActividadFormativa(
-                id = 6,
-                titulo = "Implementación de Seguridad con JWT",
-                descripcion = "Protección de rutas de API mediante tokens de autorización.",
-                progreso = 45,
-                prioridad = Prioridad.ALTA,
-                diasRestantes = 4
-            ),
-            ActividadFormativa(
-                id = 7,
-                titulo = "Pruebas Unitarias e Integración",
-                descripcion = "Cobertura de pruebas automatizadas para servicios backend.",
-                progreso = 20,
-                prioridad = Prioridad.MEDIA,
-                diasRestantes = 7
-            ),
-            ActividadFormativa(
-                id = 8,
-                titulo = "Integración Continua con GitHub Actions",
-                descripcion = "Configuración de flujos automatizados de compilación.",
-                progreso = 10,
-                prioridad = Prioridad.MEDIA,
-                diasRestantes = 8
-            ),
-            ActividadFormativa(
-                id = 9,
-                titulo = "Documentación Técnica de API con OpenAPI",
-                descripcion = "Generación y estructuración de especificaciones Swagger.",
-                progreso = 50,
-                prioridad = Prioridad.BAJA,
-                diasRestantes = 12
-            ),
-            ActividadFormativa(
-                id = 10,
-                titulo = "Arquitectura en Capas con Spring Boot",
-                descripcion = "Estructuración modular de la lógica de negocio y persistencia.",
-                progreso = 15,
-                prioridad = Prioridad.ALTA,
-                diasRestantes = 15
+                diasRestantes = 10,
+                horas = 8,
             )
         )
 
         setContent {
             MiFormacionCTMATheme {
                 PantallaActividades(
-                    actividades = listaActividadesFicticias,
-                    onActividadClick = {}
+                    actividades = listaActividadesFicticias
                 )
             }
         }
+    }
+
+    private fun programarNotificaciones() {
+        val workRequest = PeriodicWorkRequestBuilder<NotificacionWorker>(15, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            "notificacion_vencimiento",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }

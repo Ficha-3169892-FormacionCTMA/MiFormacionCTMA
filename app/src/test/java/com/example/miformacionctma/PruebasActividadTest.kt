@@ -17,7 +17,7 @@ class PruebasActividadTest {
             descripcion = "Modelado UML",
             progreso = 100,
             prioridad = Prioridad.ALTA,
-            diasRestantes = 0
+            diasRestantes = 0,
         )
 
         val actividad2 = ActividadFormativa(
@@ -26,7 +26,7 @@ class PruebasActividadTest {
             descripcion = "Endpoints en FastAPI",
             progreso = 50,
             prioridad = Prioridad.MEDIA,
-            diasRestantes = 3
+            diasRestantes = 3,
         )
 
         val lista = listOf(actividad1, actividad2)

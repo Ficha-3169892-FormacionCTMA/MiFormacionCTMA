@@ -1,12 +1,11 @@
 package com.example.miformacionctma.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
@@ -15,16 +14,13 @@ import com.example.miformacionctma.domain.ActividadFormativa
 fun TarjetaActividad(
     actividad: ActividadFormativa,
     onActividadClick: (ActividadFormativa) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         onClick = { onActividadClick(actividad) },
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .semantics {
-                contentDescription = "Actividad: ${actividad.titulo ?: ""}, Días restantes: ${actividad.diasRestantes}"
-            },
+            .padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -38,17 +34,26 @@ fun TarjetaActividad(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = actividad.titulo ?: "",
+                    text = actividad.titulo,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+
                 Spacer(modifier = Modifier.width(8.dp))
-                SuggestionChip(
-                    onClick = { },
-                    label = { Text("${actividad.diasRestantes} días") }
-                )
+
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "${actividad.diasRestantes} días",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
