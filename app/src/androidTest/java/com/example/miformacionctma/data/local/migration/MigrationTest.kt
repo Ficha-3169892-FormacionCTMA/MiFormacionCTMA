@@ -15,14 +15,14 @@ import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {
-    private val TEST_DB = "migration-test.db"
+    private val testDb = "migration-test.db"
 
     @get:Rule
     val helper: MigrationTestHelper = MigrationTestHelper(
         instrumentation = InstrumentationRegistry.getInstrumentation(),
-        file = File(InstrumentationRegistry.getInstrumentation().targetContext.getDatabasePath(TEST_DB).absolutePath),
+        file = File(InstrumentationRegistry.getInstrumentation().targetContext.getDatabasePath(testDb).absolutePath),
         driver = AndroidSQLiteDriver(),
-        databaseClass = FormacionDatabase::class
+        databaseClass = FormacionDatabase::class,
     )
 
     @Test
