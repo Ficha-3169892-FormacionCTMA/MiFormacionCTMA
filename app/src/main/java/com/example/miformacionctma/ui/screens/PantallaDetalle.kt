@@ -32,7 +32,7 @@ fun PantallaDetalle(
                     IconButton(onClick = onVolverClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
+                            contentDescription = "Volver",
                         )
                     }
                 }

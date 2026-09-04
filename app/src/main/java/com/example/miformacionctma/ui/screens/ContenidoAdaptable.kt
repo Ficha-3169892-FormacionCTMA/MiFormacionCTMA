@@ -15,11 +15,12 @@ import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.ui.components.EncabezadoFormacion
 import com.example.miformacionctma.ui.components.TarjetaActividad
 
+@Suppress("unused")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContenidoAdaptable(
     actividades: List<ActividadFormativa>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     // Cálculo dinámico de métricas para el nuevo panel del encabezado
     val totalActividades = actividades.size
@@ -34,7 +35,7 @@ fun ContenidoAdaptable(
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
         ) {
             // Umbral de adaptabilidad definido en 600.dp[cite: 1]
             val esPantallaAncha = this.maxWidth >= 600.dp
