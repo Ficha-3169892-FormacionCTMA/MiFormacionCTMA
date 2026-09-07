@@ -3,60 +3,59 @@
 package com.example.miformacionctma.ui.screens
 
 import android.content.Intent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.core.net.toUri
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.ui.ListadoUiState
+import com.example.miformacionctma.ui.OperacionUiState
 import com.example.miformacionctma.ui.components.DashboardStats
 import com.example.miformacionctma.ui.components.TarjetaActividad
 import com.example.miformacionctma.ui.viewmodel.ActividadesViewModel
-import com.example.miformacionctma.ui.viewmodel.EstadoProgresoUI
+
+@Composable
+fun PantallaActividadesRoute(
+    viewModel: ActividadesViewModel,
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val operacionState by viewModel.operacion.collectAsStateWithLifecycle()
+    val textoBusqueda by viewModel.textoBusqueda.collectAsStateWithLifecycle()
+
+    PantallaActividadesScreen(
+        uiState = uiState,
+        operacionState = operacionState,
+        textoBusqueda = textoBusqueda,
+        onBusquedaChange = viewModel::cambiarBusqueda,
+        onGuardarProgreso = viewModel::actualizarProgreso,
+        onReiniciarOperacion = viewModel::reiniciarEstadoOperacion,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaActividades(
-    actividades: List<ActividadFormativa>,
-    viewModel: ActividadesViewModel = remember { ActividadesViewModel() },
+fun PantallaActividadesScreen(
+    uiState: ListadoUiState,
+    operacionState: OperacionUiState,
+    textoBusqueda: String,
+    onBusquedaChange: (String) -> Unit,
+    onGuardarProgreso: (ActividadFormativa, Int) -> Unit,
+    onReiniciarOperacion: () -> Unit
 ) {
-    val estadoUI by viewModel.estadoUI.collectAsState()
     val contexto = LocalContext.current
 
-    // Estados para controlar el diálogo flotante de edición al hacer clic en una tarjeta
     var actividadSeleccionada by remember { mutableStateOf<ActividadFormativa?>(null) }
     var textoIngresado by remember { mutableStateOf("") }
 
@@ -76,58 +75,82 @@ fun PantallaActividades(
             val esPantallaAncha = this.maxWidth >= 600.dp
 
             Column(modifier = Modifier.fillMaxSize()) {
-                // Mensajes de feedback (Error o Éxito según las reglas de negocio)
-                when (val estado = estadoUI) {
-                    is EstadoProgresoUI.Error -> {
+
+                OutlinedTextField(
+                    value = textoBusqueda,
+                    onValueChange = onBusquedaChange,
+                    label = { Text("Buscar actividad...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    singleLine = true
+                )
+
+                when (operacionState) {
+                    is OperacionUiState.Fallida -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                         ) {
                             Text(
-                                text = estado.mensaje,
+                                text = operacionState.mensaje,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.padding(12.dp)
                             )
                         }
                     }
-                    is EstadoProgresoUI.Exito -> {
+                    is OperacionUiState.Exitosa -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                         ) {
                             Text(
-                                text = estado.mensaje,
+                                text = "Progreso actualizado correctamente",
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(12.dp)
                             )
                         }
                     }
-                    EstadoProgresoUI.Reposo -> {}
+                    OperacionUiState.EnCurso -> {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    OperacionUiState.Inactiva -> {}
                 }
 
-                // Contenido principal (Lista, Cuadrícula o Estado Vacío)
                 Box(modifier = Modifier.weight(1f)) {
-                    if (actividades.isEmpty()) {
-                        EstadoVacio()
-                    } else if (esPantallaAncha) {
-                        CuadriculaActividades(
-                            actividades = actividades,
-                        ) { actividad ->
-                            viewModel.reiniciarEstado()
-                            actividadSeleccionada = actividad
-                            textoIngresado = actividad.progreso.toString()
+                    when (uiState) {
+                        is ListadoUiState.Cargando -> {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                         }
-                    } else {
-                        ListaActividades(
-                            actividades = actividades,
-                        ) { actividad ->
-                            viewModel.reiniciarEstado()
-                            actividadSeleccionada = actividad
-                            textoIngresado = actividad.progreso.toString()
+                        is ListadoUiState.Vacio -> {
+                            EstadoVacio()
+                        }
+                        is ListadoUiState.Error -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Error: ${uiState.mensaje}", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                        is ListadoUiState.Contenido -> {
+                            val actividades = uiState.actividades
+                            if (esPantallaAncha) {
+                                CuadriculaActividades(
+                                    actividades = actividades,
+                                    onActividadClick = { actividad ->
+                                        onReiniciarOperacion()
+                                        actividadSeleccionada = actividad
+                                        textoIngresado = actividad.progreso.toString()
+                                    }
+                                )
+                            } else {
+                                ListaActividades(
+                                    actividades = actividades,
+                                    onActividadClick = { actividad ->
+                                        onReiniciarOperacion()
+                                        actividadSeleccionada = actividad
+                                        textoIngresado = actividad.progreso.toString()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -135,7 +158,6 @@ fun PantallaActividades(
         }
     }
 
-    // Diálogo emergente para modificar el avance al hacer clic en cualquier tarjeta
     actividadSeleccionada?.let { actividad ->
         AlertDialog(
             onDismissRequest = { actividadSeleccionada = null },
@@ -184,7 +206,7 @@ fun PantallaActividades(
                     Button(
                         onClick = {
                             val nuevoValor = textoIngresado.toIntOrNull() ?: -1
-                            viewModel.actualizarProgreso(actividad, nuevoValor)
+                            onGuardarProgreso(actividad, nuevoValor)
                             actividadSeleccionada = null
                         }
                     ) {
