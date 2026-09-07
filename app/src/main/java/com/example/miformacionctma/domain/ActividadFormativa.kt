@@ -11,4 +11,6 @@ data class ActividadFormativa(
     val diasRestantes: Int,
     val estado: EstadoActividad,
     val prioridad: Prioridad = Prioridad.MEDIA,
+    val horas: Int = 10,
+    val enlaceEvidencia: String? = null,
 )

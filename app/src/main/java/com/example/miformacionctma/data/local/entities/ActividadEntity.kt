@@ -28,5 +28,7 @@ data class ActividadEntity(
     val prioridad: String,
     val competenciaId: Long,
     val fechaLimiteEpochMillis: Long,
-    val completada: Boolean = false
+    val completada: Boolean = false,
+    val horas: Int = 10,
+    val enlaceEvidencia: String? = null,
 )

@@ -1,4 +1,4 @@
-package com.example.miformacionctma.ui
+package com.example.miformacionctma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -10,6 +10,7 @@ import com.example.miformacionctma.domain.ActividadRepository
 import com.example.miformacionctma.domain.PreferenciasRepository
 import com.example.miformacionctma.domain.PreferenciasUsuario
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ReglasActividad
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -98,7 +99,7 @@ class ActividadesViewModel(
                 progreso = progreso,
                 prioridad = prioridad,
                 diasRestantes = diasRestantes,
-                estado = com.example.miformacionctma.domain.ReglasActividad.obtenerEstado(progreso, diasRestantes),
+                estado = ReglasActividad.obtenerEstado(progreso, diasRestantes),
             )
             actividadRepository.guardar(nuevaActividad)
         }
@@ -106,17 +107,6 @@ class ActividadesViewModel(
 
     fun seleccionarActividad(id: Long) {
         _actividadSeleccionadaId.value = id
-    }
-
-    @Suppress("unused")
-    fun alternarEstadoActividad(id: Long) {
-        viewModelScope.launch {
-            val actividad = uiState.value.actividadesVisibles.find { it.id == id }
-            actividad?.let {
-                val nuevoProgreso = if (it.progreso == 100) 0 else 100
-                actividadRepository.guardar(it.copy(progreso = nuevoProgreso))
-            }
-        }
     }
 
     companion object {

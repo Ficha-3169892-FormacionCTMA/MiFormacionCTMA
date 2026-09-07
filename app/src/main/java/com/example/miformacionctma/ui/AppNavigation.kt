@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.miformacionctma.ui.screens.*
+import com.example.miformacionctma.ui.viewmodel.ActividadesViewModel
 import kotlinx.serialization.Serializable
 
 // Definimos los destinos como objetos o clases serializables

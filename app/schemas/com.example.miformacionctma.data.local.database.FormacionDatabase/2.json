@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "a462f54c39ade48be99c9953c8a22456",
+    "identityHash": "bb32ded9461b40151cc3b1371deb9ab2",
     "entities": [
       {
         "tableName": "actividades",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `titulo` TEXT NOT NULL, `descripcion` TEXT, `progreso` INTEGER NOT NULL, `prioridad` TEXT NOT NULL, `competenciaId` INTEGER NOT NULL, `fechaLimiteEpochMillis` INTEGER NOT NULL, `completada` INTEGER NOT NULL, FOREIGN KEY(`competenciaId`) REFERENCES `competencias`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `titulo` TEXT NOT NULL, `descripcion` TEXT, `progreso` INTEGER NOT NULL, `prioridad` TEXT NOT NULL, `competenciaId` INTEGER NOT NULL, `fechaLimiteEpochMillis` INTEGER NOT NULL, `completada` INTEGER NOT NULL, `horas` INTEGER NOT NULL, `enlaceEvidencia` TEXT, FOREIGN KEY(`competenciaId`) REFERENCES `competencias`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -54,6 +54,17 @@
             "columnName": "completada",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "horas",
+            "columnName": "horas",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enlaceEvidencia",
+            "columnName": "enlaceEvidencia",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -123,7 +134,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a462f54c39ade48be99c9953c8a22456')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bb32ded9461b40151cc3b1371deb9ab2')"
     ]
   }
 }
