@@ -1,0 +1,31 @@
+name: Android CI (Validación de Tests Kotlin)
+
+on:
+  push:
+    branches: [ "**" ] # Se ejecuta en cualquier rama que suban los estudiantes
+  pull_request:
+    branches: [ "main", "develop" ] # Se ejecuta cuando abren un PR hacia las ramas principales
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar el código del repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar Java JDK 17 (Necesario para compilar Kotlin)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17' # Android Studio moderno usa Java 17 o 21 para compilar Kotlin
+        cache: 'gradle'
+
+    - name: Conceder permisos de ejecución a Gradle
+      run: chmod +x ./gradlew
+
+    - name: Compilar el proyecto Android (Kotlin)
+      run: ./gradlew assembleDebug
+
+    - name: Ejecutar Tests Unitarios de Kotlin
+      run: ./gradlew testDebugUnitTest

@@ -1,82 +1,124 @@
 package com.example.miformacionctma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import com.example.miformacionctma.ActividadesApplication
 import com.example.miformacionctma.domain.ActividadFormativa
-import com.example.miformacionctma.repository.ActividadRepository
-import com.example.miformacionctma.ui.ListadoUiState
-import com.example.miformacionctma.ui.OperacionUiState
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.example.miformacionctma.domain.ActividadRepository
+import com.example.miformacionctma.domain.PreferenciasRepository
+import com.example.miformacionctma.domain.PreferenciasUsuario
+import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ReglasActividad
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+data class ActividadesUiState(
+    val actividadesVisibles: List<ActividadFormativa> = emptyList(),
+    val searchQuery: String = "",
+    val preferencias: PreferenciasUsuario = PreferenciasUsuario(),
+    val actividadSeleccionada: ActividadFormativa? = null,
+)
+
 class ActividadesViewModel(
-    private val repository: ActividadRepository
+    private val actividadRepository: ActividadRepository,
+    private val preferenciasRepository: PreferenciasRepository,
 ) : ViewModel() {
 
-    private val _textoBusqueda = MutableStateFlow("")
-    val textoBusqueda: StateFlow<String> = _textoBusqueda.asStateFlow()
+    private val _searchQuery = MutableStateFlow("")
+    private val _actividadSeleccionadaId = MutableStateFlow<Long?>(null)
 
-    private val _operacion = MutableStateFlow<OperacionUiState>(OperacionUiState.Inactiva)
-    val operacion: StateFlow<OperacionUiState> = _operacion.asStateFlow()
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<ListadoUiState> = _textoBusqueda
-        .map { it.trim() }
-        .distinctUntilChanged()
-        .flatMapLatest { query ->
-            if (query.isEmpty()) {
-                repository.observarActividades()
-            } else {
-                repository.buscar(query)
+    val uiState: StateFlow<ActividadesUiState> = combine(
+        actividadRepository.observarTodos(),
+        _searchQuery,
+        preferenciasRepository.preferencias,
+        _actividadSeleccionadaId,
+    ) { lista, query, prefs, seleccionadaId ->
+        
+        val filtradas = lista.asSequence()
+            .filter { it.titulo.contains(query, ignoreCase = true) }
+            .filter { (prefs.filtroPrioridad == null) || (it.prioridad == prefs.filtroPrioridad) }
+            .toList()
+            .let { 
+                if (prefs.ordenadoPorVencimiento) it.sortedBy { a -> a.diasRestantes } else it 
             }
-        }
-        .map { lista ->
-            if (lista.isEmpty()) ListadoUiState.Vacio
-            else ListadoUiState.Contenido(lista)
-        }
-        .catch { error ->
-            if (error is CancellationException) throw error
-            emit(ListadoUiState.Error(error.localizedMessage ?: "Error al cargar datos"))
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ListadoUiState.Cargando
+
+        val seleccionada = if (seleccionadaId != null) lista.find { it.id == seleccionadaId } else null
+
+        ActividadesUiState(
+            actividadesVisibles = filtradas,
+            searchQuery = query,
+            preferencias = prefs,
+            actividadSeleccionada = seleccionada,
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ActividadesUiState(),
+    )
 
-    fun cambiarBusqueda(nuevoTexto: String) {
-        _textoBusqueda.value = nuevoTexto
+    fun buscar(query: String) {
+        _searchQuery.value = query
     }
 
-    fun actualizarProgreso(actividad: ActividadFormativa, nuevoProgreso: Int) {
-        // Regla 1: Verificar si la actividad está vencida
-        if (actividad.diasRestantes <= 0) {
-            _operacion.value = OperacionUiState.Fallida("No se puede editar: la actividad está vencida.")
-            return
-        }
-
-        // Regla 2: Verificar rango del porcentaje (0 a 100)
-        if (nuevoProgreso !in (0..100)) {
-            _operacion.value = OperacionUiState.Fallida("Porcentaje inválido ($nuevoProgreso%). Debe estar entre 0 y 100.")
-            return
-        }
-
+    fun filtrarPorPrioridad(prioridad: Prioridad?) {
         viewModelScope.launch {
-            _operacion.value = OperacionUiState.EnCurso
-            try {
-                repository.guardar(actividad.copy(progreso = nuevoProgreso))
-                _operacion.value = OperacionUiState.Exitosa
-            } catch (c: CancellationException) {
-                throw c
-            } catch (e: Exception) {
-                _operacion.value = OperacionUiState.Fallida(e.localizedMessage ?: "Error al guardar progreso")
+            preferenciasRepository.guardarFiltroPrioridad(prioridad)
+        }
+    }
+
+    fun alternarOrden() {
+        viewModelScope.launch {
+            val actual = uiState.value.preferencias.ordenadoPorVencimiento
+            preferenciasRepository.guardarOrdenadoPorVencimiento(!actual)
+        }
+    }
+
+    fun guardarActividad(
+        titulo: String, 
+        descripcion: String, 
+        progreso: Int, 
+        prioridad: Prioridad, 
+        fechaMillis: Long,
+    ) {
+        viewModelScope.launch {
+            val hoy = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            
+            val diasRestantes = ((fechaMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
+
+            val nuevaActividad = ActividadFormativa(
+                id = 0, // Room generará el ID automáticamente
+                titulo = titulo,
+                descripcion = descripcion,
+                progreso = progreso,
+                prioridad = prioridad,
+                diasRestantes = diasRestantes,
+                estado = ReglasActividad.obtenerEstado(progreso, diasRestantes),
+            )
+            actividadRepository.guardar(nuevaActividad)
+        }
+    }
+
+    fun seleccionarActividad(id: Long) {
+        _actividadSeleccionadaId.value = id
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as ActividadesApplication
+                return ActividadesViewModel(
+                    application.actividadRepository,
+                    application.preferenciasRepository,
+                ) as T
             }
         }
-    }
-
-    fun reiniciarEstadoOperacion() {
-        _operacion.value = OperacionUiState.Inactiva
     }
 }

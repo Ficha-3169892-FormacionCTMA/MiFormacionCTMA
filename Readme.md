@@ -1,46 +1,91 @@
-# Mi Formación CTMA
+﻿# Informe de Desarrollo: Mi Formación CTMA
 
-**Instructor del proceso formativo:** Jhon Fredy Valencia
+## Actividad: Desarrollo de Aplicación Móvil con Jetpack Compose y Persistencia Local
+**Responsable Técnico:** Wilson Castro Gil  
+**Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
+**Rama Principal de Trabajo:** `feat/persistencia-room`  
+**Scrum Master:** Thomas
 
-## 1. Propósito y Descripción del Problema
-Los aprendices suelen administrar actividades, enlaces, evidencias y fechas en diferentes canales de comunicación. Esto produce olvidos, duplicación de trabajo y poca trazabilidad. *Mi Formación CTMA* es una aplicación móvil nativa Android construida para solucionar esto, permitiendo organizar actividades y compromisos del proceso formativo, garantizando una base técnica estable que evolucionará cada semana.
+---
 
-## 2. Usuarios y Necesidades
+## 1. Contexto del Proyecto
+"Mi Formación CTMA" es una solución móvil profesional diseñada bajo el paradigma de desarrollo moderno en Android. Su propósito es la gestión eficiente de compromisos formativos, permitiendo el seguimiento de progreso, priorización mediante lógica de colores y persistencia de datos a largo plazo en un entorno académico y profesional.
 
-| Actor | Necesidad Inicial | Valor Esperado |
-| :--- | :--- | :--- |
-| **Aprendiz** | Consultar compromisos y registrar avance. | Organización y visibilidad. |
-| **Instructor** | Comunicar actividades y criterios. | Trazabilidad formativa. |
+---
 
-## 3. Historias de Usuario y Criterios de Aceptación (Alcance Inicial)
+## 2. Arquitectura y Tecnologías (MAD Stack)
+La aplicación sigue una **Arquitectura de Capas (Clean Architecture)** orientada a la mantenibilidad y escalabilidad:
+*   **Lenguaje:** Kotlin 2.0.21 (Compilador K2).
+*   **UI Toolkit:** Jetpack Compose con Material Design 3.
+*   **Gestión de Estado:** ViewModel con StateFlow y flujos reactivos (`Flow`).
+*   **Navegación:** Navigation Compose con Seguridad de Tipos (Type-safe).
+*   **Persistencia Local:** **Room 3.0.2** (SQLite) como fuente única de verdad.
+*   **Preferencias:** **Preferences DataStore 1.2.1** para ajustes del usuario.
+*   **Procesamiento:** Operadores reactivos avanzados (`combine`, `asSequence`).
 
-### Historia 1: Interfaz Base y Bienvenida
-* **Como** aprendiz,
-* **quiero** abrir la aplicación y ver un mensaje de bienvenida,
-* **para** confirmar que el sistema está disponible y listo para usarse.
-> **Criterio de Aceptación:** La app debe compilar y ejecutarse mostrando el texto "Mi Formación CTMA" y "Hola, Aprendiz", sin cerrarse inesperadamente (crash) en el emulador o dispositivo.
+---
 
-### Historia 2: Visualización del Próximo Compromiso
-* **Como** aprendiz,
-* **quiero** visualizar una tarjeta destacada en la pantalla de inicio,
-* **para** saber inmediatamente cuál es la próxima actividad o evidencia que debo entregar.
-> **Criterio de Aceptación:** La interfaz incluye un componente tipo `Card` visible que contiene el texto del próximo compromiso asignado.
+## 3. Implementaciones Detalladas (Semana 6)
 
-### Historia 3: Estabilidad del Repositorio
-* **Como** equipo de desarrollo,
-* **quiero** contar con un repositorio limpio y versionado,
-* **para** poder evolucionar la base del código sin romperla en las siguientes semanas.
-> **Criterio de Aceptación:** El proyecto está versionado en Git con un `.gitignore` correcto, sin subir secretos, contraseñas, ni archivos generados automáticamente (como la carpeta `build/`).
+### A. Capa de Datos y Fuente Única de Verdad
+*   **Room Database**: Implementación de `FormacionDatabase` con soporte para relaciones 1:N entre Competencias y Actividades.
+*   **Evolución del Esquema**: Gestión de migración segura (Versión 1 ➔ 2) incorporando el estado de completitud sin pérdida de información.
+*   **Repositorios Desacoplados**: Uso de interfaces en la capa de dominio (`ActividadRepository`) implementadas en la capa de datos (`RoomActividadRepository`), aislando la UI de los detalles de almacenamiento.
 
-## 4. Requisitos Técnicos
-* **Lenguaje:** Kotlin
-* **Interfaz:** Jetpack Compose (Declarativa)
-* **Entorno:** Android Studio
-* **Sistema de compilación:** Gradle
+### B. Funcionalidades de Usuario (HU 05 - HU 08)
+*   **HU 05 - Búsqueda Reactiva**: Filtrado instantáneo por título en la barra superior.
+*   **HU 06 - Priorización Visual**: Tarjetas con chips de colores semánticos (Rojo/Naranja/Azul) según la urgencia.
+*   **HU 07 - Filtrado Persistente**: Segmentación por prioridad que se mantiene tras cerrar la aplicación (DataStore).
+*   **HU 08 - Ordenación Inteligente**: Reordenamiento dinámico por fecha de vencimiento.
 
-## 5. Forma de Ejecución
-1. Clonar el repositorio localmente mediante el comando: `git clone <URL_DEL_REPOSITORIO>`.
-2. Abrir el proyecto directamente desde **Android Studio**.
-3. Esperar a que la sincronización de Gradle (Gradle Sync) finalice sin arrojar errores.
-4. Seleccionar un emulador (AVD) configurado o conectar un dispositivo físico con la Depuración USB activada.
-5. Presionar el botón **Run** (Ejecutar) en Android Studio para instalar la aplicación en el dispositivo y visualizar la pantalla de inicio.
+### C. Interfaz y Experiencia (UX/UI)
+*   **Layout Adaptable**: Detección de ancho de pantalla para alternar entre lista y cuadrícula.
+*   **Validación de Negocio**: Formulario controlado con reglas puras para fechas, títulos y descripciones.
+
+---
+
+## 4. Aseguramiento de Calidad (QA)
+Se ha implementado una infraestructura de pruebas de nivel industrial:
+*   **Tests Unitarios (ViewModel)**: 13 casos de prueba que validan el 100% de la lógica de filtrado y ordenación.
+*   **Tests de Integración (Room)**: Validación del DAO y procesos de migración de base de datos.
+*   **Estado Final**: **100% de éxito** en la ejecución de la suite de pruebas automatizadas.
+*   **Higiene**: Código libre de advertencias y optimizado para rendimiento de memoria.
+
+---
+
+## 5. Diagramas Técnicos
+
+### Arquitectura de Persistencia y Flujo de Datos
+```mermaid
+graph TD
+    A[Compose UI] -->|Eventos| B[ViewModel]
+    B -->|Interfaces| C[Repository]
+    C -->|CRUD Observable| D[Room / SQLite]
+    C -->|Ajustes| E[Preferences DataStore]
+    D -->|Flow| C
+    E -->|Flow| C
+    C -->|UiState Flow| B
+    B -->|State Flow| A
+```
+
+### Ciclo de Navegación
+```mermaid
+graph TD
+    L[ListaRoute] -->|Filtros/Orden| L
+    L -->|Crear| C[CrearRoute]
+    L -->|Ver| D[DetalleRoute]
+    C -->|Guardar| L
+    D -->|Volver| L
+```
+
+---
+
+## 6. Mapeo de Componentes Técnicos
+
+| Componente | Implementación | Propósito Técnico |
+| --- | --- | --- |
+| **Room 3** | `ActividadDao` | Persistencia estructurada y consultas observables. |
+| **DataStore** | `PreferenciasRepository` | Persistencia de estado de UI y filtros. |
+| **ViewModel** | `ActividadesViewModel` | Orquestación de flujos de múltiples repositorios. |
+| **UDF** | Todo el flujo | Asegura una única vía de actualización de estado. |
+| **Type-safe Nav** | `AppNavigation` | Navegación robusta basada en objetos serializables. |
