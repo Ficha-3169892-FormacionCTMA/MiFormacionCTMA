@@ -36,42 +36,31 @@ La aplicación consolida su **Arquitectura de Capas** con un enfoque reactivo:
 *   **Main-Safety**: Las operaciones de escritura (guardar/eliminar) se ejecutan de forma segura sin bloquear la interfaz, comunicando progreso y errores mediante `OperacionUiState`.
 
 ### C. Integración Compose y Lifecycle
-*   **Recolección Consciente**: Migración de `collectAsState` a **`collectAsStateWithLifecycle`**, asegurando que la aplicación deje de consumir datos cuando la interfaz no es visible para el usuario (ahorro de batería y memoria).
-*   **Interfaz Accesible**: Representación visual clara de estados de carga (ProgressBar), errores con opción de reintento y estados vacíos informativos.
+*   **Recolección Consciente**: Migración de `collectAsState` a **`collectAsStateWithLifecycle`**, asegurando que la aplicación deje de consumir datos cuando la interfaz no es visible para el usuario.
 
 ---
 
-## 4. Aseguramiento de Calidad (QA)
-Infraestructura de pruebas actualizada para entornos asíncronos:
-*   **Pruebas Deterministas**: Suite de 14 tests unitarios ejecutados con `runTest` y `StandardTestDispatcher`, eliminando el uso de `Thread.sleep` y garantizando resultados rápidos y confiables.
-*   **Validación de Transiciones**: Verificación de flujos desde `Cargando` hasta `Contenido` o `Error`.
-*   **Simulación de Fallos**: Pruebas de captura de excepciones en el repositorio y visualización de mensajes de error en la UI.
+## 4. Validación de Casos de Aceptación (CA)
+
+| Caso | Escenario | Resultado |
+| :--- | :--- | :--- |
+| **CA-01** | Abrir sin actividades | Visualización correcta de `ListadoUiState.Vacio`. |
+| **CA-02** | Insertar actividad | Actualización reactiva instantánea vía Flow de Room. |
+| **CA-03** | Reiniciar con filtros | Restauración exitosa desde DataStore mediante `combine`. |
+| **CA-04** | Búsquedas rápidas | Cancelación de Jobs previos mediante `flatMapLatest`. |
+| **CA-05** | Fallo de repositorio | Captura de excepción y muestra de `ListadoUiState.Error`. |
+| **CA-06** | Salir durante operación | Cancelación automática de la corrutina en `onCleared`. |
+| **CA-07** | Rotación de pantalla | Persistencia del estado gracias a `StateFlow` y `stateIn`. |
+| **CA-08** | Suite de pruebas | 14 tests deterministas ejecutados con `runTest`. |
 
 ---
 
-## 5. Diagrama de Flujo Reactivo
-```mermaid
-graph LR
-    subgraph "Data Layer"
-        D[(Room / SQLite)] -->|Flow| R[Repository]
-        DS[DataStore] -->|Flow| R
-    end
-    subgraph "Domain Layer"
-        R -->|combine / map| V[ViewModel]
-    end
-    subgraph "UI Layer"
-        V -->|StateFlow| C[Compose UI]
-        C -->|collectAsStateWithLifecycle| V
-    end
-```
+## 5. Aseguramiento de Calidad (QA)
+*   **Pruebas Unitarias**: Suite completa en `ActividadesViewModelTest.kt` validando transiciones de estado y lógica de filtrado/ordenamiento.
+*   **Tiempo Virtual**: Uso exclusivo de `StandardTestDispatcher` y `runTest`, cumpliendo con la prohibición institucional de usar `Thread.sleep`.
+*   **Higiene**: 0 Errores, 0 Warnings críticos.
 
 ---
 
-## 6. Decisiones Técnicas Destacadas
-
-| Decisión | Justificación |
-| --- | --- |
-| **flatMapLatest** | Evita condiciones de carrera en búsquedas y asegura que solo el último término buscado sea procesado. |
-| **WhileSubscribed(5s)** | Mantiene el flujo activo durante rotaciones de pantalla rápidas pero lo detiene si el usuario sale de la app. |
-| **CancellationException** | Se relanza obligatoriamente en bloques try-catch para respetar la cancelación cooperativa de corrutinas. |
-| **Repository SSOT** | El repositorio combina Room y DataStore para entregar un único flujo de dominio filtrado y ordenado. |
+## 6. Reflexión Técnica
+La implementación de flujos reactivos y concurrencia estructurada ha transformado la aplicación en un sistema resiliente. El mayor desafío fue la coordinación de múltiples fuentes de datos (Room y DataStore); el uso del operador `combine` permitió unificar estas fuentes en un único `UiState` coherente, eliminando "estados imposibles" donde la UI mostraba información contradictoria. La migración a `collectAsStateWithLifecycle` garantiza que la app sea responsable con los recursos del sistema (batería/RAM), un estándar indispensable para el desarrollo profesional en 2026.
