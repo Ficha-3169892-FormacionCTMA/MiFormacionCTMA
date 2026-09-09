@@ -1,91 +1,77 @@
 ﻿# Informe de Desarrollo: Mi Formación CTMA
 
-## Actividad: Desarrollo de Aplicación Móvil con Jetpack Compose y Persistencia Local
+## Actividad: Desarrollo de Aplicación Móvil con Concurrencia y Estado Reactivo
 **Responsable Técnico:** Wilson Castro Gil  
 **Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
-**Rama Principal de Trabajo:** `feat/persistencia-room`  
+**Rama Principal de Trabajo:** `feature/semana-07-coroutines-flow`  
 **Scrum Master:** Thomas
 
 ---
 
 ## 1. Contexto del Proyecto
-"Mi Formación CTMA" es una solución móvil profesional diseñada bajo el paradigma de desarrollo moderno en Android. Su propósito es la gestión eficiente de compromisos formativos, permitiendo el seguimiento de progreso, priorización mediante lógica de colores y persistencia de datos a largo plazo en un entorno académico y profesional.
+"Mi Formación CTMA" evoluciona hacia una arquitectura totalmente asíncrona y reactiva. En esta fase, se integra la gestión de corrutinas de Kotlin y flujos reactivos (Flow/StateFlow) para manejar la persistencia de datos y el estado de la interfaz de usuario de manera eficiente, respetando el ciclo de vida de Android y evitando bloqueos en el hilo principal.
 
 ---
 
-## 2. Arquitectura y Tecnologías (MAD Stack)
-La aplicación sigue una **Arquitectura de Capas (Clean Architecture)** orientada a la mantenibilidad y escalabilidad:
-*   **Lenguaje:** Kotlin 2.0.21 (Compilador K2).
+## 2. Arquitectura y Tecnologías (Semana 7 - MAD Stack)
+La aplicación consolida su **Arquitectura de Capas** con un enfoque reactivo:
+*   **Lenguaje:** Kotlin 2.4.10 (Compilador K2).
+*   **Concurrencia:** **Kotlin Coroutines** para operaciones asíncronas no bloqueantes.
+*   **Flujos Reactivos:** **Flow** y **StateFlow** para el transporte y exposición de estados.
+*   **Ciclo de Vida:** **Lifecycle Runtime Compose** para una recolección de flujos segura.
 *   **UI Toolkit:** Jetpack Compose con Material Design 3.
-*   **Gestión de Estado:** ViewModel con StateFlow y flujos reactivos (`Flow`).
-*   **Navegación:** Navigation Compose con Seguridad de Tipos (Type-safe).
-*   **Persistencia Local:** **Room 3.0.2** (SQLite) como fuente única de verdad.
-*   **Preferencias:** **Preferences DataStore 1.2.1** para ajustes del usuario.
-*   **Procesamiento:** Operadores reactivos avanzados (`combine`, `asSequence`).
+*   **Persistencia:** Room 3.0.2 y Preferences DataStore 1.2.1.
 
 ---
 
-## 3. Implementaciones Detalladas (Semana 6)
+## 3. Implementaciones Detalladas (Semana 7)
 
-### A. Capa de Datos y Fuente Única de Verdad
-*   **Room Database**: Implementación de `FormacionDatabase` con soporte para relaciones 1:N entre Competencias y Actividades.
-*   **Evolución del Esquema**: Gestión de migración segura (Versión 1 ➔ 2) incorporando el estado de completitud sin pérdida de información.
-*   **Repositorios Desacoplados**: Uso de interfaces en la capa de dominio (`ActividadRepository`) implementadas en la capa de datos (`RoomActividadRepository`), aislando la UI de los detalles de almacenamiento.
+### A. Gestión de Estado UI (UiState)
+*   **Modelado de Estados**: Implementación de `sealed interface` para `ListadoUiState` (Cargando, Vacio, Contenido, Error) y `OperacionUiState` (Inactiva, EnCurso, Exitosa, Fallida).
+*   **Exposición Segura**: Uso de `stateIn` con la política `SharingStarted.WhileSubscribed(5_000)` para optimizar el uso de recursos y mantener el estado durante cambios de configuración (rotación).
 
-### B. Funcionalidades de Usuario (HU 05 - HU 08)
-*   **HU 05 - Búsqueda Reactiva**: Filtrado instantáneo por título en la barra superior.
-*   **HU 06 - Priorización Visual**: Tarjetas con chips de colores semánticos (Rojo/Naranja/Azul) según la urgencia.
-*   **HU 07 - Filtrado Persistente**: Segmentación por prioridad que se mantiene tras cerrar la aplicación (DataStore).
-*   **HU 08 - Ordenación Inteligente**: Reordenamiento dinámico por fecha de vencimiento.
+### B. Concurrencia Estructurada
+*   **ViewModelScope**: Todo el trabajo asíncrono de UI se liga al ciclo de vida del ViewModel, garantizando la cancelación automática al cerrar la pantalla.
+*   **Búsqueda Cancelable**: Uso del operador `flatMapLatest` en la barra de búsqueda para cancelar automáticamente consultas obsoletas cuando el usuario escribe rápidamente, priorizando siempre la entrada más reciente.
+*   **Main-Safety**: Las operaciones de escritura (guardar/eliminar) se ejecutan de forma segura sin bloquear la interfaz, comunicando progreso y errores mediante `OperacionUiState`.
 
-### C. Interfaz y Experiencia (UX/UI)
-*   **Layout Adaptable**: Detección de ancho de pantalla para alternar entre lista y cuadrícula.
-*   **Validación de Negocio**: Formulario controlado con reglas puras para fechas, títulos y descripciones.
+### C. Integración Compose y Lifecycle
+*   **Recolección Consciente**: Migración de `collectAsState` a **`collectAsStateWithLifecycle`**, asegurando que la aplicación deje de consumir datos cuando la interfaz no es visible para el usuario (ahorro de batería y memoria).
+*   **Interfaz Accesible**: Representación visual clara de estados de carga (ProgressBar), errores con opción de reintento y estados vacíos informativos.
 
 ---
 
 ## 4. Aseguramiento de Calidad (QA)
-Se ha implementado una infraestructura de pruebas de nivel industrial:
-*   **Tests Unitarios (ViewModel)**: 13 casos de prueba que validan el 100% de la lógica de filtrado y ordenación.
-*   **Tests de Integración (Room)**: Validación del DAO y procesos de migración de base de datos.
-*   **Estado Final**: **100% de éxito** en la ejecución de la suite de pruebas automatizadas.
-*   **Higiene**: Código libre de advertencias y optimizado para rendimiento de memoria.
+Infraestructura de pruebas actualizada para entornos asíncronos:
+*   **Pruebas Deterministas**: Suite de 14 tests unitarios ejecutados con `runTest` y `StandardTestDispatcher`, eliminando el uso de `Thread.sleep` y garantizando resultados rápidos y confiables.
+*   **Validación de Transiciones**: Verificación de flujos desde `Cargando` hasta `Contenido` o `Error`.
+*   **Simulación de Fallos**: Pruebas de captura de excepciones en el repositorio y visualización de mensajes de error en la UI.
 
 ---
 
-## 5. Diagramas Técnicos
-
-### Arquitectura de Persistencia y Flujo de Datos
+## 5. Diagrama de Flujo Reactivo
 ```mermaid
-graph TD
-    A[Compose UI] -->|Eventos| B[ViewModel]
-    B -->|Interfaces| C[Repository]
-    C -->|CRUD Observable| D[Room / SQLite]
-    C -->|Ajustes| E[Preferences DataStore]
-    D -->|Flow| C
-    E -->|Flow| C
-    C -->|UiState Flow| B
-    B -->|State Flow| A
-```
-
-### Ciclo de Navegación
-```mermaid
-graph TD
-    L[ListaRoute] -->|Filtros/Orden| L
-    L -->|Crear| C[CrearRoute]
-    L -->|Ver| D[DetalleRoute]
-    C -->|Guardar| L
-    D -->|Volver| L
+graph LR
+    subgraph "Data Layer"
+        D[(Room / SQLite)] -->|Flow| R[Repository]
+        DS[DataStore] -->|Flow| R
+    end
+    subgraph "Domain Layer"
+        R -->|combine / map| V[ViewModel]
+    end
+    subgraph "UI Layer"
+        V -->|StateFlow| C[Compose UI]
+        C -->|collectAsStateWithLifecycle| V
+    end
 ```
 
 ---
 
-## 6. Mapeo de Componentes Técnicos
+## 6. Decisiones Técnicas Destacadas
 
-| Componente | Implementación | Propósito Técnico |
-| --- | --- | --- |
-| **Room 3** | `ActividadDao` | Persistencia estructurada y consultas observables. |
-| **DataStore** | `PreferenciasRepository` | Persistencia de estado de UI y filtros. |
-| **ViewModel** | `ActividadesViewModel` | Orquestación de flujos de múltiples repositorios. |
-| **UDF** | Todo el flujo | Asegura una única vía de actualización de estado. |
-| **Type-safe Nav** | `AppNavigation` | Navegación robusta basada en objetos serializables. |
+| Decisión | Justificación |
+| --- | --- |
+| **flatMapLatest** | Evita condiciones de carrera en búsquedas y asegura que solo el último término buscado sea procesado. |
+| **WhileSubscribed(5s)** | Mantiene el flujo activo durante rotaciones de pantalla rápidas pero lo detiene si el usuario sale de la app. |
+| **CancellationException** | Se relanza obligatoriamente en bloques try-catch para respetar la cancelación cooperativa de corrutinas. |
+| **Repository SSOT** | El repositorio combina Room y DataStore para entregar un único flujo de dominio filtrado y ordenado. |

@@ -23,11 +23,12 @@ import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.ui.components.TarjetaActividad
+import com.example.miformacionctma.ui.states.ListadoUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaActividades(
-    actividades: List<ActividadFormativa>,
+    listadoUiState: ListadoUiState,
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     prioridadSeleccionada: Prioridad?,
@@ -74,13 +75,15 @@ fun PantallaActividades(
                 )
 
                 // Contador de resultados (Funcionalidad extra HU 05)
-                if ((searchQuery.isNotEmpty()) || (prioridadSeleccionada != null)) {
-                    Text(
-                        text = "Mostrando ${actividades.size} actividades",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
+                if (listadoUiState is ListadoUiState.Contenido) {
+                    if ((searchQuery.isNotEmpty()) || (prioridadSeleccionada != null)) {
+                        Text(
+                            text = "Mostrando ${listadoUiState.actividades.size} actividades",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
                 }
 
                 // Filtros de Prioridad (HU 7)
@@ -110,21 +113,50 @@ fun PantallaActividades(
             }
         },
     ) { innerPadding ->
-        BoxWithConstraints(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
         ) {
-            val esPantallaAncha = maxWidth >= 600.dp
-
-            if (actividades.isEmpty()) {
-                EstadoVacio(hayFiltros = (searchQuery.isNotEmpty()) || (prioridadSeleccionada != null))
-            } else if (esPantallaAncha) {
-                CuadriculaActividades(actividades = actividades, onActividadClick = onActividadClick)
-            } else {
-                ListaActividades(actividades = actividades, onActividadClick = onActividadClick)
+            when (listadoUiState) {
+                is ListadoUiState.Cargando -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is ListadoUiState.Error -> {
+                    ErrorState(
+                        mensaje = listadoUiState.mensaje,
+                        onReintentar = onSortClick, // Simplificación: reintentar alterna el orden para disparar refresco
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                is ListadoUiState.Vacio -> {
+                    EstadoVacio(
+                        hayFiltros = (searchQuery.isNotEmpty()) || (prioridadSeleccionada != null),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                is ListadoUiState.Contenido -> {
+                    ContenidoLista(
+                        actividades = listadoUiState.actividades,
+                        onActividadClick = onActividadClick
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun ContenidoLista(
+    actividades: List<ActividadFormativa>,
+    onActividadClick: (ActividadFormativa) -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        val esPantallaAncha = maxWidth >= 600.dp
+        if (esPantallaAncha) {
+            CuadriculaActividades(actividades = actividades, onActividadClick = onActividadClick)
+        } else {
+            ListaActividades(actividades = actividades, onActividadClick = onActividadClick)
         }
     }
 }
@@ -165,9 +197,9 @@ fun CuadriculaActividades(
 }
 
 @Composable
-fun EstadoVacio(hayFiltros: Boolean) {
+fun EstadoVacio(hayFiltros: Boolean, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -175,5 +207,20 @@ fun EstadoVacio(hayFiltros: Boolean) {
                   else "No hay actividades formativas registradas.",
             style = MaterialTheme.typography.bodyLarge,
         )
+    }
+}
+
+@Composable
+fun ErrorState(mensaje: String, onReintentar: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = mensaje, color = MaterialTheme.colorScheme.error)
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = onReintentar) {
+            Text("Reintentar")
+        }
     }
 }

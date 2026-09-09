@@ -8,54 +8,68 @@ import com.example.miformacionctma.ActividadesApplication
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import com.example.miformacionctma.domain.PreferenciasRepository
-import com.example.miformacionctma.domain.PreferenciasUsuario
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.ui.states.ListadoUiState
+import com.example.miformacionctma.ui.states.OperacionUiState
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-data class ActividadesUiState(
-    val actividadesVisibles: List<ActividadFormativa> = emptyList(),
-    val searchQuery: String = "",
-    val preferencias: PreferenciasUsuario = PreferenciasUsuario(),
-    val actividadSeleccionada: ActividadFormativa? = null,
-)
-
+@OptIn(ExperimentalCoroutinesApi::class)
 class ActividadesViewModel(
     private val actividadRepository: ActividadRepository,
     private val preferenciasRepository: PreferenciasRepository,
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     private val _actividadSeleccionadaId = MutableStateFlow<Long?>(null)
 
-    val uiState: StateFlow<ActividadesUiState> = combine(
-        actividadRepository.observarTodos(),
-        _searchQuery,
-        preferenciasRepository.preferencias,
-        _actividadSeleccionadaId,
-    ) { lista, query, prefs, seleccionadaId ->
-        
-        val filtradas = lista.asSequence()
-            .filter { it.titulo.contains(query, ignoreCase = true) }
-            .filter { (prefs.filtroPrioridad == null) || (it.prioridad == prefs.filtroPrioridad) }
-            .toList()
-            .let { 
-                if (prefs.ordenadoPorVencimiento) it.sortedBy { a -> a.diasRestantes } else it 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<ListadoUiState> = _searchQuery
+        .map { it.trim() }
+        .distinctUntilChanged()
+        .flatMapLatest { query ->
+            // Combinamos la fuente de datos (Room filtrado por búsqueda) con las preferencias
+            val flowActividades = if (query.isEmpty()) {
+                actividadRepository.observarTodos()
+            } else {
+                actividadRepository.buscar(query)
             }
 
-        val seleccionada = if (seleccionadaId != null) lista.find { it.id == seleccionadaId } else null
-
-        ActividadesUiState(
-            actividadesVisibles = filtradas,
-            searchQuery = query,
-            preferencias = prefs,
-            actividadSeleccionada = seleccionada,
+            combine(
+                flowActividades,
+                preferenciasRepository.preferencias
+            ) { lista, prefs ->
+                lista.asSequence()
+                    .filter { (prefs.filtroPrioridad == null) || (it.prioridad == prefs.filtroPrioridad) }
+                    .toList()
+                    .let { 
+                        if (prefs.ordenadoPorVencimiento) it.sortedBy { a -> a.diasRestantes } else it 
+                    }
+            }
+        }
+        .map { lista ->
+            if (lista.isEmpty()) ListadoUiState.Vacio else ListadoUiState.Contenido(lista)
+        }
+        .catch { error ->
+            if (error is CancellationException) throw error
+            emit(ListadoUiState.Error(error.message ?: "Error desconocido"))
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ListadoUiState.Cargando,
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ActividadesUiState(),
-    )
+
+    private val _operacion = MutableStateFlow<OperacionUiState>(OperacionUiState.Inactiva)
+    val operacion: StateFlow<OperacionUiState> = _operacion.asStateFlow()
+
+    // Preferencias expuestas individualmente para la UI si es necesario
+    val preferencias = preferenciasRepository.preferencias
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.example.miformacionctma.domain.PreferenciasUsuario())
 
     fun buscar(query: String) {
         _searchQuery.value = query
@@ -69,8 +83,8 @@ class ActividadesViewModel(
 
     fun alternarOrden() {
         viewModelScope.launch {
-            val actual = uiState.value.preferencias.ordenadoPorVencimiento
-            preferenciasRepository.guardarOrdenadoPorVencimiento(!actual)
+            val currentPrefs = preferencias.value
+            preferenciasRepository.guardarOrdenadoPorVencimiento(!currentPrefs.ordenadoPorVencimiento)
         }
     }
 
@@ -82,42 +96,50 @@ class ActividadesViewModel(
         fechaMillis: Long,
     ) {
         viewModelScope.launch {
-            val hoy = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, 0)
-                set(java.util.Calendar.MINUTE, 0)
-                set(java.util.Calendar.SECOND, 0)
-                set(java.util.Calendar.MILLISECOND, 0)
-            }.timeInMillis
-            
-            val diasRestantes = ((fechaMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
+            _operacion.value = OperacionUiState.EnCurso
+            try {
+                val hoy = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                
+                val diasRestantes = ((fechaMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
 
-            val nuevaActividad = ActividadFormativa(
-                id = 0, // Room generará el ID automáticamente
-                titulo = titulo,
-                descripcion = descripcion,
-                progreso = progreso,
-                prioridad = prioridad,
-                diasRestantes = diasRestantes,
-                estado = com.example.miformacionctma.domain.ReglasActividad.obtenerEstado(progreso, diasRestantes),
-            )
-            actividadRepository.guardar(nuevaActividad)
+                val nuevaActividad = ActividadFormativa(
+                    id = 0, // Room generará el ID automáticamente
+                    titulo = titulo,
+                    descripcion = descripcion,
+                    progreso = progreso,
+                    prioridad = prioridad,
+                    diasRestantes = diasRestantes,
+                    estado = com.example.miformacionctma.domain.ReglasActividad.obtenerEstado(progreso, diasRestantes),
+                )
+                actividadRepository.guardar(nuevaActividad)
+                _operacion.value = OperacionUiState.Exitosa
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al guardar")
+            }
         }
+    }
+
+    fun resetOperacion() {
+        _operacion.value = OperacionUiState.Inactiva
     }
 
     fun seleccionarActividad(id: Long) {
         _actividadSeleccionadaId.value = id
     }
 
-    @Suppress("unused")
-    fun alternarEstadoActividad(id: Long) {
-        viewModelScope.launch {
-            val actividad = uiState.value.actividadesVisibles.find { it.id == id }
-            actividad?.let {
-                val nuevoProgreso = if (it.progreso == 100) 0 else 100
-                actividadRepository.guardar(it.copy(progreso = nuevoProgreso))
-            }
+    val actividadSeleccionada: StateFlow<ActividadFormativa?> = _actividadSeleccionadaId
+        .flatMapLatest { id ->
+            if (id == null) flowOf(null)
+            else actividadRepository.observarPorId(id)
         }
-    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     companion object {
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {

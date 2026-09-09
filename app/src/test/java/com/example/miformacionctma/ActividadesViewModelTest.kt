@@ -7,10 +7,12 @@ import com.example.miformacionctma.domain.PreferenciasRepository
 import com.example.miformacionctma.domain.PreferenciasUsuario
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.ui.ActividadesViewModel
+import com.example.miformacionctma.ui.states.ListadoUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -47,7 +49,8 @@ class ActividadesViewModelTest {
         fakeActividadRepository = object : ActividadRepository {
             override fun observarTodos(): Flow<List<ActividadFormativa>> = repoFlow
             override fun observarPorId(id: Long): Flow<ActividadFormativa?> = MutableStateFlow(null)
-            override fun buscar(texto: String): Flow<List<ActividadFormativa>> = MutableStateFlow(emptyList())
+            override fun buscar(texto: String): Flow<List<ActividadFormativa>> = 
+                repoFlow.map { lista -> lista.filter { it.titulo.contains(texto, ignoreCase = true) } }
             override suspend fun guardar(actividad: ActividadFormativa) {}
             override suspend fun eliminar(id: Long): Boolean = true
         }
@@ -73,7 +76,6 @@ class ActividadesViewModelTest {
     fun `HU05 - Busqueda en Tiempo Real`() = runTest(testDispatcher) {
         val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository)
         
-        // Iniciamos la recolección para activar el StateFlow (HU 05, 06, 07, 08)
         val job = launch { viewModel.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle() 
 
@@ -81,9 +83,11 @@ class ActividadesViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val estado = viewModel.uiState.value
+        assertTrue(estado is ListadoUiState.Contenido)
+        val contenido = estado as ListadoUiState.Contenido
         assertTrue(
             "La lista debe contener solo la actividad con 'Docker'",
-            estado.actividadesVisibles.all { it.titulo.contains("Docker", ignoreCase = true) },
+            contenido.actividades.all { it.titulo.contains("Docker", ignoreCase = true) },
         )
         job.cancel()
     }
@@ -95,12 +99,13 @@ class ActividadesViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val estado = viewModel.uiState.value
-        val lista = estado.actividadesVisibles
+        assertTrue(estado is ListadoUiState.Contenido)
+        val contenido = estado as ListadoUiState.Contenido
         
-        assertTrue("La lista inicial en el estado debe tener 2 elementos", lista.size == 2)
+        assertTrue("La lista inicial en el estado debe tener 2 elementos", contenido.actividades.size == 2)
         assertTrue(
             "Cada actividad expuesta debe tener su prioridad",
-            lista.any { it.prioridad == Prioridad.ALTA }
+            contenido.actividades.any { it.prioridad == Prioridad.ALTA }
         )
         job.cancel()
     }
@@ -115,9 +120,12 @@ class ActividadesViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val estado = viewModel.uiState.value
+        assertTrue(estado is ListadoUiState.Contenido)
+        val contenido = estado as ListadoUiState.Contenido
+        
         assertTrue(
             "Todas las actividades visibles deben tener prioridad ALTA",
-            estado.actividadesVisibles.all { it.prioridad == Prioridad.ALTA },
+            contenido.actividades.all { it.prioridad == Prioridad.ALTA },
         )
         job.cancel()
     }
@@ -131,7 +139,11 @@ class ActividadesViewModelTest {
         viewModel.alternarOrden()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val lista = viewModel.uiState.value.actividadesVisibles
+        val estado = viewModel.uiState.value
+        assertTrue(estado is ListadoUiState.Contenido)
+        val contenido = estado as ListadoUiState.Contenido
+        
+        val lista = contenido.actividades
         if (lista.size >= 2) {
             for (i in 0 until (lista.size - 1)) {
                 assertTrue(
