@@ -10,7 +10,7 @@ object ReglasActividad {
         if (titulo.isBlank()) {
             add("El título no puede estar vacío.")
         }
-        if (progreso !in 0..100) {
+        if (progreso !in (0..100)) {
             add("El progreso debe estar entre 0 y 100.")
         }
     }
@@ -55,9 +55,48 @@ object ReglasActividad {
         }
     }
 
-    // 5. Calcular promedio de progreso (Semana 3)
+    // 5. Actividades urgentes (no completadas con 1 día o menos - HU14)
+    fun actividadesUrgentes(actividades: List<ActividadFormativa>): List<ActividadFormativa> {
+        return actividades.filter { actividad ->
+            val estado = obtenerEstado(actividad.progreso, actividad.diasRestantes)
+            (estado != EstadoActividad.COMPLETADA) && (actividad.diasRestantes <= 1)
+        }
+    }
+
+    // 6. Promedio de progreso (manejo de lista vacía sin división por cero)
     fun promedioProgreso(actividades: List<ActividadFormativa>): Double {
         if (actividades.isEmpty()) return 0.0
-        return actividades.sumOf { it.progreso }.toDouble() / actividades.size
+        val progresosValidos = actividades.asSequence()
+            .map { it.progreso }
+            .filter { it in (0..100) }
+            .toList()
+        if (progresosValidos.isEmpty()) return 0.0
+        return progresosValidos.average()
+    }
+
+    // 6b. Total de horas acumuladas (Dashboard)
+    fun totalHoras(actividades: List<ActividadFormativa>): Int {
+        return actividades.sumOf { it.horas }
+    }
+
+    // 7. Búsqueda por título (ignora mayúsculas/minúsculas y espacios externos)
+    fun buscarPorTitulo(actividades: List<ActividadFormativa>, textoBusqueda: String): List<ActividadFormativa> {
+        val consultaLimpia = textoBusqueda.trim()
+        if (consultaLimpia.isEmpty()) return actividades
+
+        return actividades.filter { actividad ->
+            actividad.titulo.contains(consultaLimpia, ignoreCase = true)
+        }
+    }
+
+    // Reto Adicional: Ordenar actividades (Vencidas primero, luego prioridad alta, luego menor días)
+    fun ordenarActividades(actividades: List<ActividadFormativa>): List<ActividadFormativa> {
+        return actividades.sortedWith(
+            compareByDescending<ActividadFormativa> {
+                obtenerEstado(it.progreso, it.diasRestantes) == EstadoActividad.VENCIDA
+            }
+                .thenByDescending { it.prioridad }
+                .thenBy { it.diasRestantes },
+        )
     }
 }

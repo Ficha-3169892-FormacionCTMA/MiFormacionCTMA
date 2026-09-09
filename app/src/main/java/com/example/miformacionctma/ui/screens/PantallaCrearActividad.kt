@@ -16,6 +16,9 @@ import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
 import com.example.miformacionctma.ui.states.OperacionUiState
+import java.time.LocalDate
+import java.util.Locale
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +34,7 @@ fun PantallaCrearActividad(
     var fechaSeleccionadaMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var intentoGuardar by rememberSaveable { mutableStateOf(false) }
     
-    var mostrarDatePicker by remember { mutableStateOf(false) }
+    val showDatePickerState = remember { mutableStateOf(false) }
 
     val uiState = FormularioActividadUiState(
         titulo = titulo,
@@ -45,18 +48,30 @@ fun PantallaCrearActividad(
         fechaError = if (intentoGuardar) ReglasActividad.validarFecha(fechaSeleccionadaMillis) else null,
     )
 
-    if (mostrarDatePicker) {
-        val datePickerState = rememberDatePickerState()
+    if (showDatePickerState.value) {
+        val datePickerState = rememberDatePickerState(
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    // Bloquea fechas pasadas (HU 09)
+                    val hoyMillis = LocalDate.now(ZoneId.systemDefault())
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+                    return utcTimeMillis >= hoyMillis
+                }
+            }
+        )
+
         DatePickerDialog(
-            onDismissRequest = { mostrarDatePicker = false },
+            onDismissRequest = { showDatePickerState.value = false },
             confirmButton = {
                 TextButton(onClick = {
                     fechaSeleccionadaMillis = datePickerState.selectedDateMillis
-                    mostrarDatePicker = false
+                    showDatePickerState.value = false
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDatePicker = false }) { Text("Cancelar") }
+                TextButton(onClick = { showDatePickerState.value = false }) { Text("Cancelar") }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -90,7 +105,7 @@ fun PantallaCrearActividad(
                 onDescripcionChange = { descripcion = it },
                 onProgresoChange = { progreso = it },
                 onPrioridadChange = { prioridad = it },
-                onFechaClick = { mostrarDatePicker = true },
+                onFechaClick = { showDatePickerState.value = true },
                 onGuardarClick = {
                     intentoGuardar = true
                     if (uiState.puedeGuardar) {
@@ -203,7 +218,7 @@ fun FormularioActividad(
 
         // Selección de Fecha
         val fechaTexto = uiState.fechaSeleccionadaMillis?.let {
-            java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(it))
+            java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(java.util.Date(it))
         } ?: "Seleccionar fecha límite"
         
         OutlinedCard(
@@ -231,7 +246,7 @@ fun FormularioActividad(
             )
         }
 
-        // Selector de Progreso
+        // Selector de Progreso (HU 11)
         Text(text = "Progreso Inicial: ${uiState.progreso}%", style = MaterialTheme.typography.titleMedium)
         Slider(
             value = uiState.progreso.toFloat(),

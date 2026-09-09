@@ -6,7 +6,7 @@ import com.example.miformacionctma.domain.EstadoActividad
 import com.example.miformacionctma.domain.PreferenciasRepository
 import com.example.miformacionctma.domain.PreferenciasUsuario
 import com.example.miformacionctma.domain.Prioridad
-import com.example.miformacionctma.ui.ActividadesViewModel
+import com.example.miformacionctma.ui.viewmodel.ActividadesViewModel
 import com.example.miformacionctma.ui.states.ListadoUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

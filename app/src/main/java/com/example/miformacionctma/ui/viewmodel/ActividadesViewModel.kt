@@ -1,4 +1,4 @@
-package com.example.miformacionctma.ui
+package com.example.miformacionctma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -9,6 +9,7 @@ import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import com.example.miformacionctma.domain.PreferenciasRepository
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ReglasActividad
 import com.example.miformacionctma.ui.states.ListadoUiState
 import com.example.miformacionctma.ui.states.OperacionUiState
 import kotlinx.coroutines.CancellationException
@@ -27,12 +28,10 @@ class ActividadesViewModel(
 
     private val _actividadSeleccionadaId = MutableStateFlow<Long?>(null)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<ListadoUiState> = _searchQuery
         .map { it.trim() }
         .distinctUntilChanged()
         .flatMapLatest { query ->
-            // Combinamos la fuente de datos (Room filtrado por búsqueda) con las preferencias
             val flowActividades = if (query.isEmpty()) {
                 actividadRepository.observarTodos()
             } else {
@@ -41,7 +40,7 @@ class ActividadesViewModel(
 
             combine(
                 flowActividades,
-                preferenciasRepository.preferencias
+                preferenciasRepository.preferencias,
             ) { lista, prefs ->
                 lista.asSequence()
                     .filter { (prefs.filtroPrioridad == null) || (it.prioridad == prefs.filtroPrioridad) }
@@ -67,7 +66,6 @@ class ActividadesViewModel(
     private val _operacion = MutableStateFlow<OperacionUiState>(OperacionUiState.Inactiva)
     val operacion: StateFlow<OperacionUiState> = _operacion.asStateFlow()
 
-    // Preferencias expuestas individualmente para la UI si es necesario
     val preferencias = preferenciasRepository.preferencias
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.example.miformacionctma.domain.PreferenciasUsuario())
 
@@ -114,7 +112,7 @@ class ActividadesViewModel(
                     progreso = progreso,
                     prioridad = prioridad,
                     diasRestantes = diasRestantes,
-                    estado = com.example.miformacionctma.domain.ReglasActividad.obtenerEstado(progreso, diasRestantes),
+                    estado = ReglasActividad.obtenerEstado(progreso, diasRestantes),
                 )
                 actividadRepository.guardar(nuevaActividad)
                 _operacion.value = OperacionUiState.Exitosa
@@ -132,6 +130,27 @@ class ActividadesViewModel(
 
     fun seleccionarActividad(id: Long) {
         _actividadSeleccionadaId.value = id
+    }
+
+    fun actualizarProgreso(id: Long, nuevoProgreso: Int) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            try {
+                val flow = actividadRepository.observarPorId(id).first()
+                flow?.let {
+                    val actividadActualizada = it.copy(
+                        progreso = nuevoProgreso,
+                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, it.diasRestantes)
+                    )
+                    actividadRepository.guardar(actividadActualizada)
+                    _operacion.value = OperacionUiState.Exitosa
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al actualizar")
+            }
+        }
     }
 
     val actividadSeleccionada: StateFlow<ActividadFormativa?> = _actividadSeleccionadaId

@@ -1,7 +1,9 @@
 package com.example.miformacionctma.domain
 
-enum class EstadoActividad {
+import kotlinx.serialization.Serializable
 
+@Serializable
+enum class EstadoActividad {
     PENDIENTE,
     EN_PROGRESO,
     COMPLETADA,

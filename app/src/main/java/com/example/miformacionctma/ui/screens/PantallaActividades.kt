@@ -2,6 +2,7 @@
 
 package com.example.miformacionctma.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,18 +11,23 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.ui.components.DashboardStats
 import com.example.miformacionctma.ui.components.TarjetaActividad
 import com.example.miformacionctma.ui.states.ListadoUiState
 
@@ -37,7 +43,13 @@ fun PantallaActividades(
     onSortClick: () -> Unit,
     onActividadClick: (ActividadFormativa) -> Unit,
     onCrearClick: () -> Unit,
+    onActualizarActividad: (Long, Int) -> Unit = { _, _ -> },
 ) {
+    val contexto = LocalContext.current
+
+    var actividadEdicion by remember { mutableStateOf<ActividadFormativa?>(null) }
+    var textoIngresado by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
             Column {
@@ -46,15 +58,15 @@ fun PantallaActividades(
                     actions = {
                         IconButton(onClick = onSortClick) {
                             Icon(
-                                Icons.Default.Menu, 
+                                Icons.Default.Menu,
                                 contentDescription = "Ordenar",
                                 tint = if (ordenadoPorVencimiento) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     },
                 )
-                
-                // Barra de Búsqueda (HU 5)
+
+                // Barra de Búsqueda
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchChange,
@@ -74,19 +86,7 @@ fun PantallaActividades(
                     shape = MaterialTheme.shapes.medium,
                 )
 
-                // Contador de resultados (Funcionalidad extra HU 05)
-                if (listadoUiState is ListadoUiState.Contenido) {
-                    if ((searchQuery.isNotEmpty()) || (prioridadSeleccionada != null)) {
-                        Text(
-                            text = "Mostrando ${listadoUiState.actividades.size} actividades",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
-                    }
-                }
-
-                // Filtros de Prioridad (HU 7)
+                // Filtros de Prioridad
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -97,11 +97,22 @@ fun PantallaActividades(
                     Prioridad.entries.forEach { prioridad ->
                         FilterChip(
                             selected = prioridadSeleccionada == prioridad,
-                            onClick = { 
+                            onClick = {
                                 if (prioridadSeleccionada == prioridad) onPrioridadFilterClick(null)
                                 else onPrioridadFilterClick(prioridad)
                             },
                             label = { Text(prioridad.name) },
+                        )
+                    }
+                }
+
+                if (listadoUiState is ListadoUiState.Contenido) {
+                    if ((searchQuery.isNotEmpty()) || (prioridadSeleccionada != null)) {
+                        Text(
+                            text = "Mostrando ${listadoUiState.actividades.size} actividades",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(horizontal = 16.dp),
                         )
                     }
                 }
@@ -116,7 +127,7 @@ fun PantallaActividades(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
         ) {
             when (listadoUiState) {
                 is ListadoUiState.Cargando -> {
@@ -125,7 +136,7 @@ fun PantallaActividades(
                 is ListadoUiState.Error -> {
                     ErrorState(
                         mensaje = listadoUiState.mensaje,
-                        onReintentar = onSortClick, // Simplificación: reintentar alterna el orden para disparar refresco
+                        onReintentar = onSortClick,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -136,13 +147,86 @@ fun PantallaActividades(
                     )
                 }
                 is ListadoUiState.Contenido -> {
-                    ContenidoLista(
-                        actividades = listadoUiState.actividades,
-                        onActividadClick = onActividadClick
-                    )
+                    ContenidoLista(actividades = listadoUiState.actividades) { actividad ->
+                        actividadEdicion = actividad
+                        textoIngresado = actividad.progreso.toString()
+                    }
                 }
             }
         }
+    }
+
+    actividadEdicion?.let { actividad ->
+        AlertDialog(
+            onDismissRequest = { actividadEdicion = null },
+            title = { Text("Actualizar Avance") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(text = actividad.titulo, style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Días restantes: ${actividad.diasRestantes}")
+
+                    OutlinedTextField(
+                        value = textoIngresado,
+                        onValueChange = { textoIngresado = it },
+                        label = { Text("Nuevo Porcentaje (0 - 100)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmButton = {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = {
+                            val sendIntent: Intent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, "Logro CTMA: He completado ${actividad.progreso}% de '${actividad.titulo}'.")
+                                type = "text/plain"
+                            }
+                            val shareIntent = Intent.createChooser(sendIntent, null)
+                            contexto.startActivity(shareIntent)
+                        }
+                    ) {
+                        Text("Compartir")
+                    }
+
+                    if (actividad.enlaceEvidencia != null) {
+                        TextButton(
+                            onClick = {
+                                val browserIntent = Intent(Intent.ACTION_VIEW, actividad.enlaceEvidencia.toUri())
+                                contexto.startActivity(browserIntent)
+                            }
+                        ) {
+                            Text("Evidencia")
+                        }
+                    }
+
+                    TextButton(
+                        onClick = {
+                            onActividadClick(actividad)
+                            actividadEdicion = null
+                        }
+                    ) {
+                        Text("Detalles")
+                    }
+
+                    Button(
+                        onClick = {
+                            val progresoInt = textoIngresado.toIntOrNull() ?: actividad.progreso
+                            onActualizarActividad(actividad.id, progresoInt)
+                            actividadEdicion = null
+                        }
+                    ) {
+                        Text("Guardar")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { actividadEdicion = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -167,6 +251,9 @@ fun ListaActividades(
     onActividadClick: (ActividadFormativa) -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
+        item {
+            DashboardStats(actividades = actividades)
+        }
         items(
             items = actividades,
             key = { it.id },
@@ -187,6 +274,9 @@ fun CuadriculaActividades(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 8.dp),
     ) {
+        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            DashboardStats(actividades = actividades)
+        }
         items(
             items = actividades,
             key = { it.id },
@@ -203,8 +293,8 @@ fun EstadoVacio(hayFiltros: Boolean, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = if (hayFiltros) "No se encontraron actividades con estos filtros." 
-                  else "No hay actividades formativas registradas.",
+            text = if (hayFiltros) "No se encontraron actividades con estos filtros."
+            else "No hay actividades formativas registradas.",
             style = MaterialTheme.typography.bodyLarge,
         )
     }
@@ -215,7 +305,7 @@ fun ErrorState(mensaje: String, onReintentar: () -> Unit, modifier: Modifier = M
     Column(
         modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(text = mensaje, color = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(8.dp))

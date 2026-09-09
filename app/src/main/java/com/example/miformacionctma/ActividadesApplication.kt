@@ -1,17 +1,22 @@
 package com.example.miformacionctma
 
 import android.app.Application
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.miformacionctma.data.local.database.FormacionDatabase
 import com.example.miformacionctma.data.local.entities.CompetenciaEntity
 import com.example.miformacionctma.data.repository.DataStorePreferenciasRepository
-import com.example.miformacionctma.data.repository.RoomActividadRepository
+import com.example.miformacionctma.data.repository.SyncedActividadRepository
 import com.example.miformacionctma.data.repository.dataStore
 import com.example.miformacionctma.data.repository.toEntity
 import com.example.miformacionctma.domain.MockData
+import com.example.miformacionctma.worker.NotificacionWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 class ActividadesApplication : Application() {
 
@@ -20,8 +25,8 @@ class ActividadesApplication : Application() {
     // Contenedor manual para inyección de dependencias simple
     val database: FormacionDatabase by lazy { FormacionDatabase.getDatabase(this) }
     
-    val actividadRepository: RoomActividadRepository by lazy {
-        RoomActividadRepository(database.actividadDao())
+    val actividadRepository: SyncedActividadRepository by lazy {
+        SyncedActividadRepository(database.actividadDao(), applicationScope)
     }
     
     val preferenciasRepository: DataStorePreferenciasRepository by lazy {
@@ -31,6 +36,7 @@ class ActividadesApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         prepoblarBaseDeDatos()
+        iniciarNotificaciones()
     }
 
     private fun prepoblarBaseDeDatos() {
@@ -48,5 +54,15 @@ class ActividadesApplication : Application() {
                 }
             }
         }
+    }
+
+    private fun iniciarNotificaciones() {
+        val workRequest = PeriodicWorkRequestBuilder<NotificacionWorker>(15, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "vencimiento_notificaciones",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }
