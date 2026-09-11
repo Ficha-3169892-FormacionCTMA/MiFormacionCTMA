@@ -2,7 +2,6 @@ package com.example.miformacionctma.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -81,9 +80,9 @@ fun PantallaDetalle(
 fun DetalleContenido(
     actividad: ActividadFormativa,
     onGuardarProgreso: (Int) -> Unit,
-    estaGuardando: Boolean
+    estaGuardando: Boolean,
 ) {
-    var editandoProgreso by remember { mutableStateOf(false) }
+    var editandoProgreso by remember { mutableStateOf(value = false) }
     var nuevoProgreso by remember { mutableFloatStateOf(actividad.progreso.toFloat()) }
 
     Column(

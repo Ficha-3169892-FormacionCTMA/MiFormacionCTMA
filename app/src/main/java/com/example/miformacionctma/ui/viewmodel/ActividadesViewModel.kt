@@ -132,6 +132,34 @@ class ActividadesViewModel(
         _actividadSeleccionadaId.value = id
     }
 
+    fun eliminarActividad(actividad: ActividadFormativa) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            try {
+                actividadRepository.eliminar(actividad.id)
+                _operacion.value = OperacionUiState.Exitosa
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al eliminar")
+            }
+        }
+    }
+
+    fun restaurarActividad(actividad: ActividadFormativa) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            try {
+                actividadRepository.guardar(actividad)
+                _operacion.value = OperacionUiState.Exitosa
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al restaurar")
+            }
+        }
+    }
+
     fun actualizarProgreso(id: Long, nuevoProgreso: Int) {
         viewModelScope.launch {
             _operacion.value = OperacionUiState.EnCurso
@@ -140,7 +168,7 @@ class ActividadesViewModel(
                 flow?.let {
                     val actividadActualizada = it.copy(
                         progreso = nuevoProgreso,
-                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, it.diasRestantes)
+                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, it.diasRestantes),
                     )
                     actividadRepository.guardar(actividadActualizada)
                     _operacion.value = OperacionUiState.Exitosa

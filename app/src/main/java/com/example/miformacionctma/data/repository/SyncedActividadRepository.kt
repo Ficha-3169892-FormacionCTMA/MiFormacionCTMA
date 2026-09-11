@@ -1,11 +1,14 @@
 package com.example.miformacionctma.data.repository
 
 import com.example.miformacionctma.data.local.dao.ActividadDao
+import com.example.miformacionctma.data.remote.dto.ActividadDto
 import com.example.miformacionctma.data.remote.dto.toDto
+import com.example.miformacionctma.data.remote.dto.toDomain
 import com.example.miformacionctma.data.supabaseClient
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +34,27 @@ class SyncedActividadRepository(
     override fun buscar(texto: String): Flow<List<ActividadFormativa>> =
         dao.buscar(texto).map { entities -> entities.map { it.toDomain() } }
 
+    /**
+     * Descarga todas las actividades de la nube y las guarda en Room.
+     * Esto permite recuperar datos al reinstalar la app o cambiar de dispositivo.
+     */
+    suspend fun sincronizarDesdeNube() {
+        withContext(Dispatchers.IO) {
+            try {
+                val remoteDtos = supabaseClient.from("actividades")
+                    .select()
+                    .decodeList<ActividadDto>()
+                
+                remoteDtos.forEach { dto ->
+                    dao.insertar(dto.toDomain().toEntity(competenciaId = 1L))
+                }
+                android.util.Log.d("SyncedRepo", "📥 RECUPERACIÓN: ${remoteDtos.size} actividades descargadas de Supabase.")
+            } catch (e: Exception) {
+                android.util.Log.e("SyncedRepo", "❌ FALLO RECUPERACIÓN: ${e.message}")
+            }
+        }
+    }
+
     override suspend fun guardar(actividad: ActividadFormativa) {
         withContext(Dispatchers.IO) {
             // 1. Persistencia Local (SSOT)
@@ -40,12 +64,11 @@ class SyncedActividadRepository(
             // 2. Sincronización Remota Resiliente
             scope.launch {
                 try {
-                    // Convertimos a DTO antes de enviar a la nube
                     val dto = actividadFinal.toDto()
                     supabaseClient.from("actividades").upsert(dto)
+                    android.util.Log.d("SyncedRepo", "✅ SINCRONIZADO: '${actividadFinal.titulo}' subida a Supabase.")
                 } catch (e: Exception) {
-                    // Si falla la red, el dato sigue a salvo en Room (Resiliencia)
-                    android.util.Log.e("SyncedRepo", "Fallo de sincronización remota: ${e.message}")
+                    android.util.Log.e("SyncedRepo", "❌ ERROR NUBE: Fallo de sincronización remota: ${e.message}")
                 }
             }
         }
@@ -53,10 +76,8 @@ class SyncedActividadRepository(
 
     override suspend fun eliminar(id: Long): Boolean {
         return withContext(Dispatchers.IO) {
-            // 1. Eliminar localmente
             val result = dao.eliminarPorId(id) == 1
             if (result) {
-                // 2. Intentar eliminar en la nube
                 scope.launch {
                     try {
                         supabaseClient.from("actividades").delete {
@@ -64,8 +85,9 @@ class SyncedActividadRepository(
                                 eq("id", id)
                             }
                         }
+                        android.util.Log.d("SyncedRepo", "🗑️ ELIMINADO: Actividad #$id borrada de Supabase.")
                     } catch (e: Exception) {
-                        android.util.Log.e("SyncedRepo", "Error al eliminar en la nube: ${e.message}")
+                        android.util.Log.e("SyncedRepo", "❌ ERROR NUBE: No se pudo eliminar en la nube: ${e.message}")
                     }
                 }
             }

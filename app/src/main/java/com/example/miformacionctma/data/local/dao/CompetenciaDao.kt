@@ -19,9 +19,9 @@ interface CompetenciaDao {
     @Query("SELECT * FROM competencias ORDER BY nombre")
     fun observarConActividades(): Flow<List<CompetenciaConActividades>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertar(competencia: CompetenciaEntity)
     
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertarTodas(competencias: List<CompetenciaEntity>)
 }

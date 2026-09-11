@@ -3,6 +3,7 @@
 package com.example.miformacionctma.ui.screens
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -30,6 +32,7 @@ import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.ui.components.DashboardStats
 import com.example.miformacionctma.ui.components.TarjetaActividad
 import com.example.miformacionctma.ui.states.ListadoUiState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,13 +47,18 @@ fun PantallaActividades(
     onActividadClick: (ActividadFormativa) -> Unit,
     onCrearClick: () -> Unit,
     onActualizarActividad: (Long, Int) -> Unit = { _, _ -> },
+    onEliminarActividad: (ActividadFormativa) -> Unit = { },
+    onRestaurarActividad: (ActividadFormativa) -> Unit = { },
 ) {
     val contexto = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     var actividadEdicion by remember { mutableStateOf<ActividadFormativa?>(null) }
     var textoIngresado by remember { mutableStateOf("") }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column {
                 TopAppBar(
@@ -137,20 +145,36 @@ fun PantallaActividades(
                     ErrorState(
                         mensaje = listadoUiState.mensaje,
                         onReintentar = onSortClick,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center),
                     )
                 }
                 is ListadoUiState.Vacio -> {
                     EstadoVacio(
-                        hayFiltros = (searchQuery.isNotEmpty()) || (prioridadSeleccionada != null),
-                        modifier = Modifier.align(Alignment.Center)
+                        hayFiltros = searchQuery.isNotEmpty() || prioridadSeleccionada != null,
+                        modifier = Modifier.align(Alignment.Center),
                     )
                 }
                 is ListadoUiState.Contenido -> {
-                    ContenidoLista(actividades = listadoUiState.actividades) { actividad ->
-                        actividadEdicion = actividad
-                        textoIngresado = actividad.progreso.toString()
-                    }
+                    ContenidoLista(
+                        actividades = listadoUiState.actividades,
+                        onEliminarActividad = { actividad ->
+                            onEliminarActividad(actividad)
+                            coroutineScope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Actividad eliminada",
+                                    actionLabel = "Deshacer",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    onRestaurarActividad(actividad)
+                                }
+                            }
+                        },
+                        onActividadClick = { actividad ->
+                            actividadEdicion = actividad
+                            textoIngresado = actividad.progreso.toString()
+                        }
+                    )
                 }
             }
         }
@@ -233,6 +257,7 @@ fun PantallaActividades(
 @Composable
 fun ContenidoLista(
     actividades: List<ActividadFormativa>,
+    onEliminarActividad: (ActividadFormativa) -> Unit,
     onActividadClick: (ActividadFormativa) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -240,15 +265,21 @@ fun ContenidoLista(
         if (esPantallaAncha) {
             CuadriculaActividades(actividades = actividades, onActividadClick = onActividadClick)
         } else {
-            ListaActividades(actividades = actividades, onActividadClick = onActividadClick)
+            ListaActividades(
+                actividades = actividades, 
+                onActividadClick = onActividadClick,
+                onEliminarActividad = onEliminarActividad,
+            )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaActividades(
     actividades: List<ActividadFormativa>,
     onActividadClick: (ActividadFormativa) -> Unit,
+    onEliminarActividad: (ActividadFormativa) -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
         item {
@@ -258,7 +289,45 @@ fun ListaActividades(
             items = actividades,
             key = { it.id },
         ) { actividad ->
-            TarjetaActividad(actividad = actividad, onActividadClick = onActividadClick)
+            // Usamos un key único para forzar el reinicio del estado del Swipe
+            key(actividad.id) {
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = {
+                        if (it == SwipeToDismissBoxValue.EndToStart) {
+                            onEliminarActividad(actividad)
+                            true
+                        } else false
+                    }
+                )
+
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                            MaterialTheme.colorScheme.errorContainer
+                        } else Color.Transparent
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(vertical = 4.dp)
+                                .background(color, MaterialTheme.shapes.medium),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close, 
+                                contentDescription = "Eliminar",
+                                modifier = Modifier.padding(end = 16.dp),
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    },
+                    enableDismissFromStartToEnd = false,
+                    content = {
+                        TarjetaActividad(actividad = actividad, onActividadClick = onActividadClick)
+                    }
+                )
+            }
         }
     }
 }

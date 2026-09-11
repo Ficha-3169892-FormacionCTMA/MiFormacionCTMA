@@ -1,7 +1,6 @@
 package com.example.miformacionctma.ui
 
 import android.provider.Settings
-import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
@@ -48,8 +47,8 @@ fun AppNavigation(
     NavHost(
         navController = navController,
         startDestination = ListaRoute,
-        enterTransition = { fadeIn(animationSpec = tween(animDuration)) },
-        exitTransition = { fadeOut(animationSpec = tween(animDuration)) }
+        enterTransition = { fadeIn(animationSpec = tween(durationMillis = animDuration)) },
+        exitTransition = { fadeOut(animationSpec = tween(durationMillis = animDuration)) },
     ) {
         composable<ListaRoute> {
             PantallaActividades(
@@ -61,39 +60,41 @@ fun AppNavigation(
                 ordenadoPorVencimiento = preferencias.ordenadoPorVencimiento,
                 onSortClick = viewModel::alternarOrden,
                 onActividadClick = { actividad ->
-                    viewModel.seleccionarActividad(actividad.id)
-                    navController.navigate(DetalleRoute(actividad.id.toString()))
+                    viewModel.seleccionarActividad(id = actividad.id)
+                    navController.navigate(route = DetalleRoute(actividadId = actividad.id.toString()))
                 },
                 onCrearClick = {
-                    navController.navigate(CrearRoute)
+                    navController.navigate(route = CrearRoute)
                 },
-                onActualizarActividad = viewModel::actualizarProgreso
+                onActualizarActividad = viewModel::actualizarProgreso,
+                onEliminarActividad = viewModel::eliminarActividad,
+                onRestaurarActividad = viewModel::restaurarActividad,
             )
         }
 
         composable<DetalleRoute>(
             enterTransition = {
-                slideInHorizontally(initialOffsetX = { 300 }, animationSpec = tween(animDuration)) +
-                fadeIn(animationSpec = tween(animDuration))
+                slideInHorizontally(initialOffsetX = { 300 }, animationSpec = tween(durationMillis = animDuration)) +
+                fadeIn(animationSpec = tween(durationMillis = animDuration))
             },
             exitTransition = {
-                slideOutHorizontally(targetOffsetX = { 300 }, animationSpec = tween(animDuration)) +
-                fadeOut(animationSpec = tween(animDuration))
-            }
+                slideOutHorizontally(targetOffsetX = { 300 }, animationSpec = tween(durationMillis = animDuration)) +
+                fadeOut(animationSpec = tween(durationMillis = animDuration))
+            },
         ) { backStackEntry ->
             val route: DetalleRoute = backStackEntry.toRoute()
             val actividadSeleccionada by viewModel.actividadSeleccionada.collectAsStateWithLifecycle()
             val operacionState by viewModel.operacion.collectAsStateWithLifecycle()
 
-            LaunchedEffect(route.actividadId) {
-                viewModel.seleccionarActividad(route.actividadId.toLongOrNull() ?: -1L)
+            LaunchedEffect(key1 = route.actividadId) {
+                viewModel.seleccionarActividad(id = route.actividadId.toLongOrNull() ?: -1L)
             }
 
             val detalleUiState = remember(actividadSeleccionada, route.actividadId) {
                 if (actividadSeleccionada != null) {
-                    DetalleUiState.Exito(actividadSeleccionada!!)
+                    DetalleUiState.Exito(actividad = actividadSeleccionada!!)
                 } else {
-                    DetalleUiState.NoEncontrada(route.actividadId)
+                    DetalleUiState.NoEncontrada(id = route.actividadId)
                 }
             }
 
@@ -108,14 +109,14 @@ fun AppNavigation(
                         )
                     }
                 },
-                operacionUiState = operacionState
+                operacionUiState = operacionState,
             )
         }
 
         composable<CrearRoute> {
             val operacionState by viewModel.operacion.collectAsStateWithLifecycle()
 
-            LaunchedEffect(operacionState) {
+            LaunchedEffect(key1 = operacionState) {
                 if (operacionState is OperacionUiState.Exitosa) {
                     navController.popBackStack()
                     viewModel.resetOperacion()
@@ -130,7 +131,7 @@ fun AppNavigation(
                 onVolverClick = { 
                     navController.popBackStack()
                     viewModel.resetOperacion()
-                }
+                },
             )
         }
     }

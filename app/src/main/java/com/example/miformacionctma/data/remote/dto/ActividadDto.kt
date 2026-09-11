@@ -1,14 +1,14 @@
 package com.example.miformacionctma.data.remote.dto
 
 import com.example.miformacionctma.domain.ActividadFormativa
-import com.example.miformacionctma.domain.EstadoActividad
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ReglasActividad
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * DTO (Data Transfer Object) para representar la actividad en el servicio remoto (Supabase/REST).
- * Separa el contrato de red de la lógica de dominio (Semana 8).
+ * DTO Minimalista para garantizar compatibilidad con la tabla actual en Supabase.
+ * Solo enviamos los campos esenciales.
  */
 @Serializable
 data class ActividadDto(
@@ -22,27 +22,18 @@ data class ActividadDto(
     val progreso: Int,
     @SerialName("dias_restantes")
     val diasRestantes: Int,
-    @SerialName("estado")
-    val estado: String,
     @SerialName("prioridad")
     val prioridad: String,
-    @SerialName("horas")
-    val horas: Int,
-    @SerialName("enlace_evidencia")
-    val enlaceEvidencia: String? = null
 )
 
-// Mapeadores
+// Mapeadores que aseguran que los datos locales no se pierdan aunque no se suban todos a la nube
 fun ActividadFormativa.toDto() = ActividadDto(
     id = id,
     titulo = titulo,
     descripcion = descripcion,
     progreso = progreso,
     diasRestantes = diasRestantes,
-    estado = estado.name,
     prioridad = prioridad.name,
-    horas = horas,
-    enlaceEvidencia = enlaceEvidencia
 )
 
 fun ActividadDto.toDomain() = ActividadFormativa(
@@ -51,8 +42,9 @@ fun ActividadDto.toDomain() = ActividadFormativa(
     descripcion = descripcion,
     progreso = progreso,
     diasRestantes = diasRestantes,
-    estado = EstadoActividad.valueOf(estado),
+    // Recuperamos/Calculamos los campos que no viajan a la nube (Semana 8)
+    estado = ReglasActividad.obtenerEstado(progreso, diasRestantes),
     prioridad = Prioridad.valueOf(prioridad),
-    horas = horas,
-    enlaceEvidencia = enlaceEvidencia
+    horas = 10, // Valor por defecto local
+    enlaceEvidencia = null, // Se mantiene localmente
 )
