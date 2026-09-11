@@ -3,142 +3,186 @@
 package com.example.miformacionctma.ui.screens
 
 import android.content.Intent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.core.net.toUri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.ui.components.DashboardStats
 import com.example.miformacionctma.ui.components.TarjetaActividad
-import com.example.miformacionctma.ui.viewmodel.ActividadesViewModel
-import com.example.miformacionctma.ui.viewmodel.EstadoProgresoUI
+import com.example.miformacionctma.ui.states.ListadoUiState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaActividades(
-    actividades: List<ActividadFormativa>,
-    viewModel: ActividadesViewModel = remember { ActividadesViewModel() },
+    listadoUiState: ListadoUiState,
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    prioridadSeleccionada: Prioridad?,
+    onPrioridadFilterClick: (Prioridad?) -> Unit,
+    ordenadoPorVencimiento: Boolean,
+    onSortClick: () -> Unit,
+    onActividadClick: (ActividadFormativa) -> Unit,
+    onCrearClick: () -> Unit,
+    onActualizarActividad: (Long, Int) -> Unit = { _, _ -> },
+    onEliminarActividad: (ActividadFormativa) -> Unit = { },
+    onRestaurarActividad: (ActividadFormativa) -> Unit = { },
 ) {
-    val estadoUI by viewModel.estadoUI.collectAsState()
     val contexto = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
-    // Estados para controlar el diálogo flotante de edición al hacer clic en una tarjeta
-    var actividadSeleccionada by remember { mutableStateOf<ActividadFormativa?>(null) }
+    var actividadEdicion by remember { mutableStateOf<ActividadFormativa?>(null) }
     var textoIngresado by remember { mutableStateOf("") }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Mi Formación CTMA") },
-            )
-        }
-    ) { innerPadding ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-        ) {
-            val esPantallaAncha = this.maxWidth >= 600.dp
+            Column {
+                TopAppBar(
+                    title = { Text("Mi Formación CTMA") },
+                    actions = {
+                        IconButton(onClick = onSortClick) {
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = "Ordenar",
+                                tint = if (ordenadoPorVencimiento) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
 
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Mensajes de feedback (Error o Éxito según las reglas de negocio)
-                when (val estado = estadoUI) {
-                    is EstadoProgresoUI.Error -> {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = estado.mensaje,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(12.dp)
-                            )
+                // Barra de Búsqueda
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Buscar por título...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchChange("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                            }
                         }
+                    },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
+                )
+
+                // Filtros de Prioridad
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Prioridad.entries.forEach { prioridad ->
+                        FilterChip(
+                            selected = prioridadSeleccionada == prioridad,
+                            onClick = {
+                                if (prioridadSeleccionada == prioridad) onPrioridadFilterClick(null)
+                                else onPrioridadFilterClick(prioridad)
+                            },
+                            label = { Text(prioridad.name) },
+                        )
                     }
-                    is EstadoProgresoUI.Exito -> {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = estado.mensaje,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-                    EstadoProgresoUI.Reposo -> {}
                 }
 
-                // Contenido principal (Lista, Cuadrícula o Estado Vacío)
-                Box(modifier = Modifier.weight(1f)) {
-                    if (actividades.isEmpty()) {
-                        EstadoVacio()
-                    } else if (esPantallaAncha) {
-                        CuadriculaActividades(
-                            actividades = actividades,
-                        ) { actividad ->
-                            viewModel.reiniciarEstado()
-                            actividadSeleccionada = actividad
-                            textoIngresado = actividad.progreso.toString()
-                        }
-                    } else {
-                        ListaActividades(
-                            actividades = actividades,
-                        ) { actividad ->
-                            viewModel.reiniciarEstado()
-                            actividadSeleccionada = actividad
-                            textoIngresado = actividad.progreso.toString()
-                        }
+                if (listadoUiState is ListadoUiState.Contenido) {
+                    if ((searchQuery.isNotEmpty()) || (prioridadSeleccionada != null)) {
+                        Text(
+                            text = "Mostrando ${listadoUiState.actividades.size} actividades",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
                     }
+                }
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onCrearClick) {
+                Icon(Icons.Default.Add, contentDescription = "Nueva Actividad")
+            }
+        },
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            when (listadoUiState) {
+                is ListadoUiState.Cargando -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is ListadoUiState.Error -> {
+                    ErrorState(
+                        mensaje = listadoUiState.mensaje,
+                        onReintentar = onSortClick,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
+                is ListadoUiState.Vacio -> {
+                    EstadoVacio(
+                        hayFiltros = searchQuery.isNotEmpty() || prioridadSeleccionada != null,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
+                is ListadoUiState.Contenido -> {
+                    ContenidoLista(
+                        actividades = listadoUiState.actividades,
+                        onEliminarActividad = { actividad ->
+                            onEliminarActividad(actividad)
+                            coroutineScope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Actividad eliminada",
+                                    actionLabel = "Deshacer",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    onRestaurarActividad(actividad)
+                                }
+                            }
+                        },
+                        onActividadClick = { actividad ->
+                            actividadEdicion = actividad
+                            textoIngresado = actividad.progreso.toString()
+                        }
+                    )
                 }
             }
         }
     }
 
-    // Diálogo emergente para modificar el avance al hacer clic en cualquier tarjeta
-    actividadSeleccionada?.let { actividad ->
+    actividadEdicion?.let { actividad ->
         AlertDialog(
-            onDismissRequest = { actividadSeleccionada = null },
+            onDismissRequest = { actividadEdicion = null },
             title = { Text("Actualizar Avance") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -150,7 +194,7 @@ fun PantallaActividades(
                         onValueChange = { textoIngresado = it },
                         label = { Text("Nuevo Porcentaje (0 - 100)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
+                        singleLine = true,
                     )
                 }
             },
@@ -177,15 +221,24 @@ fun PantallaActividades(
                                 contexto.startActivity(browserIntent)
                             }
                         ) {
-                            Text("Ver Evidencia")
+                            Text("Evidencia")
                         }
+                    }
+
+                    TextButton(
+                        onClick = {
+                            onActividadClick(actividad)
+                            actividadEdicion = null
+                        }
+                    ) {
+                        Text("Detalles")
                     }
 
                     Button(
                         onClick = {
-                            val nuevoValor = textoIngresado.toIntOrNull() ?: -1
-                            viewModel.actualizarProgreso(actividad, nuevoValor)
-                            actividadSeleccionada = null
+                            val progresoInt = textoIngresado.toIntOrNull() ?: actividad.progreso
+                            onActualizarActividad(actividad.id, progresoInt)
+                            actividadEdicion = null
                         }
                     ) {
                         Text("Guardar")
@@ -193,7 +246,7 @@ fun PantallaActividades(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { actividadSeleccionada = null }) {
+                TextButton(onClick = { actividadEdicion = null }) {
                     Text("Cancelar")
                 }
             }
@@ -202,9 +255,31 @@ fun PantallaActividades(
 }
 
 @Composable
+fun ContenidoLista(
+    actividades: List<ActividadFormativa>,
+    onEliminarActividad: (ActividadFormativa) -> Unit,
+    onActividadClick: (ActividadFormativa) -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        val esPantallaAncha = maxWidth >= 600.dp
+        if (esPantallaAncha) {
+            CuadriculaActividades(actividades = actividades, onActividadClick = onActividadClick)
+        } else {
+            ListaActividades(
+                actividades = actividades, 
+                onActividadClick = onActividadClick,
+                onEliminarActividad = onEliminarActividad,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun ListaActividades(
     actividades: List<ActividadFormativa>,
     onActividadClick: (ActividadFormativa) -> Unit,
+    onEliminarActividad: (ActividadFormativa) -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
         item {
@@ -214,7 +289,45 @@ fun ListaActividades(
             items = actividades,
             key = { it.id },
         ) { actividad ->
-            TarjetaActividad(actividad = actividad, onActividadClick = onActividadClick)
+            // Usamos un key único para forzar el reinicio del estado del Swipe
+            key(actividad.id) {
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = {
+                        if (it == SwipeToDismissBoxValue.EndToStart) {
+                            onEliminarActividad(actividad)
+                            true
+                        } else false
+                    }
+                )
+
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                            MaterialTheme.colorScheme.errorContainer
+                        } else Color.Transparent
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(vertical = 4.dp)
+                                .background(color, MaterialTheme.shapes.medium),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close, 
+                                contentDescription = "Eliminar",
+                                modifier = Modifier.padding(end = 16.dp),
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    },
+                    enableDismissFromStartToEnd = false,
+                    content = {
+                        TarjetaActividad(actividad = actividad, onActividadClick = onActividadClick)
+                    }
+                )
+            }
         }
     }
 }
@@ -235,7 +348,7 @@ fun CuadriculaActividades(
         }
         items(
             items = actividades,
-            key = { it.id }
+            key = { it.id },
         ) { actividad ->
             TarjetaActividad(actividad = actividad, onActividadClick = onActividadClick)
         }
@@ -243,14 +356,30 @@ fun CuadriculaActividades(
 }
 
 @Composable
-fun EstadoVacio() {
+fun EstadoVacio(hayFiltros: Boolean, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "No hay actividades formativas registradas.",
-            style = MaterialTheme.typography.bodyLarge
+            text = if (hayFiltros) "No se encontraron actividades con estos filtros."
+            else "No hay actividades formativas registradas.",
+            style = MaterialTheme.typography.bodyLarge,
         )
+    }
+}
+
+@Composable
+fun ErrorState(mensaje: String, onReintentar: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(text = mensaje, color = MaterialTheme.colorScheme.error)
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = onReintentar) {
+            Text("Reintentar")
+        }
     }
 }

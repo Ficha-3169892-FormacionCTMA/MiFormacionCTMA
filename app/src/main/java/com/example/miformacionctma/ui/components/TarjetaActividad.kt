@@ -6,9 +6,38 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.Prioridad
+
+@Composable
+fun PrioridadChip(prioridad: Prioridad) {
+    val colores = when (prioridad) {
+        Prioridad.ALTA -> AssistChipDefaults.assistChipColors(
+            containerColor = Color(0xFFFFDAD6), // Rojo suave (M3 Error Container)
+            labelColor = Color(0xFF410002),
+        )
+        Prioridad.MEDIA -> AssistChipDefaults.assistChipColors(
+            containerColor = Color(0xFFFFDDB3), // Naranja suave
+            labelColor = Color(0xFF291800)
+        )
+        Prioridad.BAJA -> AssistChipDefaults.assistChipColors(
+            containerColor = Color(0xFFD1E4FF), // Azul suave
+            labelColor = Color(0xFF001D36)
+        )
+    }
+
+    AssistChip(
+        onClick = { },
+        label = { Text(prioridad.name) },
+        colors = colores,
+        border = null
+    )
+}
 
 @Composable
 fun TarjetaActividad(
@@ -20,7 +49,10 @@ fun TarjetaActividad(
         onClick = { onActividadClick(actividad) },
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .semantics {
+                contentDescription = "Actividad: ${actividad.titulo}, Días restantes: ${actividad.diasRestantes}"
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -43,12 +75,16 @@ fun TarjetaActividad(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
+                PrioridadChip(prioridad = actividad.prioridad)
+                
+                Spacer(modifier = Modifier.width(4.dp))
+
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "${actividad.diasRestantes} días",
+                        text = "${actividad.diasRestantes} d",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

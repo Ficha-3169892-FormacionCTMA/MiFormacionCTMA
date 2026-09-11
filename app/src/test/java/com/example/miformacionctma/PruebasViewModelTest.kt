@@ -1,155 +1,65 @@
 package com.example.miformacionctma
 
 import com.example.miformacionctma.domain.ActividadFormativa
-import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.domain.ActividadRepository
+import com.example.miformacionctma.domain.PreferenciasRepository
+import com.example.miformacionctma.domain.PreferenciasUsuario
 import com.example.miformacionctma.ui.viewmodel.ActividadesViewModel
-import com.example.miformacionctma.ui.viewmodel.EstadoProgresoUI
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PruebasViewModelTest {
 
     private lateinit var viewModel: ActividadesViewModel
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    private val fakeRepository = object : ActividadRepository {
+        override fun observarTodos(): Flow<List<ActividadFormativa>> = flowOf(emptyList())
+        override fun observarPorId(id: Long): Flow<ActividadFormativa?> = flowOf(null)
+        override fun buscar(texto: String): Flow<List<ActividadFormativa>> = flowOf(emptyList())
+        override suspend fun guardar(actividad: ActividadFormativa) {}
+        override suspend fun eliminar(id: Long): Boolean = true
+    }
+
+    private val fakePreferenciasRepository = object : PreferenciasRepository {
+        override val preferencias: Flow<PreferenciasUsuario> = flowOf(PreferenciasUsuario())
+        override suspend fun guardarFiltroPrioridad(prioridad: com.example.miformacionctma.domain.Prioridad?) {}
+        override suspend fun guardarOrdenadoPorVencimiento(ordenado: Boolean) {}
+        override suspend fun guardarModoCuadricula(activo: Boolean) {}
+    }
 
     @Before
     fun setUp() {
-        viewModel = ActividadesViewModel()
+        Dispatchers.setMain(testDispatcher)
+        viewModel = ActividadesViewModel(fakeRepository, fakePreferenciasRepository)
     }
 
-    // =========================================================================
-    // CASOS VÁLIDOS (Valores permitidos dentro del rango 0 - 100)
-    // =========================================================================
-
-    @Test
-    fun actualizarProgreso_valorValidoIntermedio_retornaExito() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, 50)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Exito)
-        assertEquals("Progreso actualizado correctamente a 50%", (estado as EstadoProgresoUI.Exito).mensaje)
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
-    fun actualizarProgreso_limiteInferiorExacto0_retornaExito() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, 0)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Exito)
-    }
-
-    @Test
-    fun actualizarProgreso_limiteSuperiorExacto100_retornaExito() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, 100)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Exito)
-    }
-
-    // =========================================================================
-    // CASOS INVÁLIDOS (Valores fuera de rango - Porcentajes erróneos)
-    // =========================================================================
-
-    @Test
-    fun actualizarProgreso_limiteInmediatoInferiorFueraDeRango_retornaError() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, -1)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Error)
-        assertEquals("Porcentaje inválido (-1%). Debe estar entre 0 y 100.", (estado as EstadoProgresoUI.Error).mensaje)
-    }
-
-    @Test
-    fun actualizarProgreso_limiteInmediatoSuperiorFueraDeRango_retornaError() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, 101)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Error)
-        assertEquals("Porcentaje inválido (101%). Debe estar entre 0 y 100.", (estado as EstadoProgresoUI.Error).mensaje)
-    }
-
-    @Test
-    fun actualizarProgreso_porcentajeMuyNegativo_retornaError() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, -50)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Error)
-    }
-
-    @Test
-    fun actualizarProgreso_porcentajeMuyAlto_retornaError() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, 200)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Error)
-    }
-
-    // =========================================================================
-    // CASOS INVÁLIDOS (Reglas de Negocio: Fechas y Estado Vencido)
-    // =========================================================================
-
-    @Test
-    fun actualizarProgreso_actividadVencidaDiasCero_retornaError() {
-        val actividad = crearActividadPrueba(diasRestantes = 0)
-
-        viewModel.actualizarProgreso(actividad, 80)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Error)
-        assertEquals("No se puede editar: la actividad está vencida.", (estado as EstadoProgresoUI.Error).mensaje)
-    }
-
-    @Test
-    fun actualizarProgreso_actividadVencidaDiasNegativos_retornaError() {
-        val actividad = crearActividadPrueba(diasRestantes = -3)
-
-        viewModel.actualizarProgreso(actividad, 80)
-
-        val estado = viewModel.estadoUI.value
-        assertTrue(estado is EstadoProgresoUI.Error)
-        assertEquals("No se puede editar: la actividad está vencida.", (estado as EstadoProgresoUI.Error).mensaje)
-    }
-
-    // =========================================================================
-    // PRUEBAS DE ESTADO DE LA INTERFAZ
-    // =========================================================================
-
-    @Test
-    fun reiniciarEstado_restableceEstadoAReposo() {
-        val actividad = crearActividadPrueba(diasRestantes = 5)
-
-        viewModel.actualizarProgreso(actividad, -10)
-        assertTrue(viewModel.estadoUI.value is EstadoProgresoUI.Error)
-
-        viewModel.reiniciarEstado()
-
-        assertTrue(viewModel.estadoUI.value is EstadoProgresoUI.Reposo)
-    }
-
-    // Función auxiliar para instanciar objetos rápidamente
-    private fun crearActividadPrueba(diasRestantes: Int): ActividadFormativa {
-        return ActividadFormativa(
-            id = 1,
-            titulo = "Actividad de Prueba",
-            descripcion = "Descripción de prueba unitaria",
-            progreso = 10,
-            prioridad = Prioridad.ALTA,
-            diasRestantes = diasRestantes,
-        )
+    fun buscar_actualizaElEstado() = runTest {
+        val job = launch(testDispatcher) { viewModel.uiState.collect() }
+        
+        viewModel.buscar("Kotlin")
+        // En la nueva arquitectura searchQuery es un StateFlow independiente
+        assertEquals("Kotlin", viewModel.searchQuery.value)
+        
+        job.cancel()
     }
 }

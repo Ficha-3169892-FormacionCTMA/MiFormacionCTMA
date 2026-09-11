@@ -1,6 +1,7 @@
 package com.example.miformacionctma
 
 import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.EstadoActividad
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
 import org.junit.Assert.assertEquals
@@ -18,6 +19,7 @@ class PruebasActividadTest {
             progreso = 100,
             prioridad = Prioridad.ALTA,
             diasRestantes = 0,
+            estado = EstadoActividad.COMPLETADA
         )
 
         val actividad2 = ActividadFormativa(
@@ -27,6 +29,7 @@ class PruebasActividadTest {
             progreso = 50,
             prioridad = Prioridad.MEDIA,
             diasRestantes = 3,
+            estado = EstadoActividad.EN_PROGRESO
         )
 
         val lista = listOf(actividad1, actividad2)

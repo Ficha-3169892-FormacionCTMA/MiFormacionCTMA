@@ -3,8 +3,11 @@ package com.example.miformacionctma.ui
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.EstadoActividad
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.ui.screens.PantallaActividades
+
+import com.example.miformacionctma.ui.states.ListadoUiState
 import com.example.miformacionctma.ui.theme.MiFormacionCTMATheme
 import org.junit.Rule
 import org.junit.Test
@@ -17,13 +20,23 @@ class PantallaActividadesTest {
     @Test
     fun dashboard_muestra_estadisticas_correctas_HU16() {
         val actividades = listOf(
-            ActividadFormativa(1, "Act1", null, 50, 5, Prioridad.ALTA, 10),
-            ActividadFormativa(2, "Act2", null, 0, 5, Prioridad.MEDIA, 10),
+            ActividadFormativa(1, "Act1", null, 50, 5, EstadoActividad.EN_PROGRESO, Prioridad.ALTA, 10),
+            ActividadFormativa(2, "Act2", null, 0, 5, EstadoActividad.PENDIENTE, Prioridad.MEDIA, 10),
         )
 
         composeTestRule.setContent {
             MiFormacionCTMATheme {
-                PantallaActividades(actividades = actividades)
+                PantallaActividades(
+                    listadoUiState = ListadoUiState.Contenido(actividades),
+                    searchQuery = "",
+                    onSearchChange = {},
+                    prioridadSeleccionada = null,
+                    onPrioridadFilterClick = {},
+                    ordenadoPorVencimiento = false,
+                    onSortClick = {},
+                    onActividadClick = {},
+                    onCrearClick = {}
+                )
             }
         }
 
@@ -39,12 +52,22 @@ class PantallaActividadesTest {
     @Test
     fun alHacerClickEnActividadConEnlace_muestraBotonVerEvidencia_HU13() {
         val actividad = ActividadFormativa(
-            1, "TestLink", null, 0, 5, Prioridad.ALTA, 10, "https://google.com",
+            1, "TestLink", null, 0, 5, EstadoActividad.PENDIENTE, Prioridad.ALTA, 10, "https://google.com",
         )
 
         composeTestRule.setContent {
             MiFormacionCTMATheme {
-                PantallaActividades(actividades = listOf(actividad))
+                PantallaActividades(
+                    listadoUiState = ListadoUiState.Contenido(listOf(actividad)),
+                    searchQuery = "",
+                    onSearchChange = {},
+                    prioridadSeleccionada = null,
+                    onPrioridadFilterClick = {},
+                    ordenadoPorVencimiento = false,
+                    onSortClick = {},
+                    onActividadClick = {},
+                    onCrearClick = {}
+                )
             }
         }
 
@@ -52,25 +75,35 @@ class PantallaActividadesTest {
         composeTestRule.onNodeWithText("TestLink").performClick()
 
         // Verificar botones en el diálogo
-        composeTestRule.onNodeWithText("Ver Evidencia").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Evidencia").assertIsDisplayed()
         composeTestRule.onNodeWithText("Compartir").assertIsDisplayed()
     }
 
     @Test
     fun alHacerClickEnActividadSinEnlace_NO_muestraBotonVerEvidencia_HU13() {
         val actividad = ActividadFormativa(
-            1, "NoLink", null, 0, 5, Prioridad.ALTA, 10, null,
+            1, "NoLink", null, 0, 5, EstadoActividad.PENDIENTE, Prioridad.ALTA, 10, null,
         )
 
         composeTestRule.setContent {
             MiFormacionCTMATheme {
-                PantallaActividades(actividades = listOf(actividad))
+                PantallaActividades(
+                    listadoUiState = ListadoUiState.Contenido(listOf(actividad)),
+                    searchQuery = "",
+                    onSearchChange = {},
+                    prioridadSeleccionada = null,
+                    onPrioridadFilterClick = {},
+                    ordenadoPorVencimiento = false,
+                    onSortClick = {},
+                    onActividadClick = {},
+                    onCrearClick = {}
+                )
             }
         }
 
         composeTestRule.onNodeWithText("NoLink").performClick()
 
-        composeTestRule.onNodeWithText("Ver Evidencia").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Evidencia").assertDoesNotExist()
         composeTestRule.onNodeWithText("Compartir").assertIsDisplayed()
     }
 }

@@ -7,6 +7,9 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.miformacionctma.ActividadesApplication
+import com.example.miformacionctma.domain.ReglasActividad
+import kotlinx.coroutines.flow.first
 
 class NotificacionWorker(
     appContext: Context,
@@ -14,15 +17,22 @@ class NotificacionWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        // En una app real, aquí consultaríamos la base de datos.
-        // Simulamos que encontramos una actividad próxima a vencer (diasRestantes <= 0 o 1).
+        val application = applicationContext as ActividadesApplication
+        val repository = application.actividadRepository
         
-        mostrarNotificacion(
-            "¡Atención!",
-            "Tienes actividades que vencen en menos de 24 horas. ¡No las olvides!",
-        )
-
-        return Result.success()
+        try {
+            val actividades = repository.observarTodos().first()
+            val urgentes = ReglasActividad.actividadesUrgentes(actividades)
+            
+            if (urgentes.isNotEmpty()) {
+                val mensaje = "Tienes ${urgentes.size} actividades próximas a vencer."
+                mostrarNotificacion("Recordatorio CTMA", mensaje)
+            }
+            
+            return Result.success()
+        } catch (e: Exception) {
+            return Result.retry()
+        }
     }
 
     private fun mostrarNotificacion(titulo: String, mensaje: String) {
@@ -33,7 +43,7 @@ class NotificacionWorker(
             val channel = NotificationChannel(
                 channelId,
                 "Alertas de Vencimiento",
-                NotificationManager.IMPORTANCE_DEFAULT,
+                NotificationManager.IMPORTANCE_HIGH,
             )
             notificationManager.createNotificationChannel(channel)
         }
@@ -42,9 +52,10 @@ class NotificacionWorker(
             .setContentTitle(titulo)
             .setContentText(mensaje)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(1, notification)
+        notificationManager.notify(101, notification)
     }
 }
