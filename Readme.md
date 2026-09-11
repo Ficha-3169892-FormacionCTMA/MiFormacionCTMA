@@ -1,26 +1,45 @@
-﻿# Informe de Desarrollo: Mi Formación CTMA
+﻿## Informe de Desarrollo: Mi Formación CTMA
 
-## Actividad: Desarrollo de Aplicación Móvil con Concurrencia y Estado Reactivo
+## Actividad: Desarrollo de Aplicación Móvil con Resiliencia y Servicios Cloud
 **Responsable Técnico:** Wilson Castro Gil  
 **Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
-**Rama Principal de Trabajo:** `feature/semana-07-coroutines-flow`  
+**Rama Principal de Trabajo:** `feature/semana-08-cloud-resilience`  
 **Scrum Master:** Thomas
 
 ---
 
-## 1. Contexto del Proyecto
-"Mi Formación CTMA" evoluciona hacia una arquitectura totalmente asíncrona y reactiva. En esta fase, se integra la gestión de corrutinas de Kotlin y flujos reactivos (Flow/StateFlow) para manejar la persistencia de datos y el estado de la interfaz de usuario de manera eficiente, respetando el ciclo de vida de Android y evitando bloqueos en el hilo principal.
+## 1. Contexto del Proyecto (Semana 8)
+En esta fase, "Mi Formación CTMA" alcanza su madurez en la gestión de datos mediante la integración de **servicios en la nube (Supabase)** y la implementación de patrones de **resiliencia**. El enfoque central es la separación de responsabilidades entre el transporte de red y la lógica de negocio, asegurando que la aplicación sea 100% funcional incluso sin conectividad.
 
 ---
 
-## 2. Arquitectura y Tecnologías (Semana 7 - MAD Stack)
-La aplicación consolida su **Arquitectura de Capas** con un enfoque reactivo:
-*   **Lenguaje:** Kotlin 2.4.10 (Compilador K2).
-*   **Concurrencia:** **Kotlin Coroutines** para operaciones asíncronas no bloqueantes.
-*   **Flujos Reactivos:** **Flow** y **StateFlow** para el transporte y exposición de estados.
-*   **Ciclo de Vida:** **Lifecycle Runtime Compose** para una recolección de flujos segura.
-*   **UI Toolkit:** Jetpack Compose con Material Design 3.
-*   **Persistencia:** Room 3.0.2 y Preferences DataStore 1.2.1.
+## 2. Arquitectura de Datos y Resiliencia (Semana 8)
+Se ha implementado una arquitectura **Offline-First** profesional:
+*   **DTO (Data Transfer Objects):** Creación de `ActividadDto.kt` para desacoplar el contrato de la API (Supabase) del modelo de dominio.
+*   **Repositorio Híbrido:** El `SyncedActividadRepository` actúa como orquestador, priorizando **Room** como Fuente Única de Verdad (SSOT) y sincronizando con la nube de forma asíncrona.
+*   **Manejo de Fallos:** Implementación de bloques try-catch resilientes que permiten que la app continúe operando localmente si el servidor remoto no responde o devuelve errores.
+
+---
+
+## 3. Calidad y Automatización (QA)
+Siguiendo los lineamientos de ADSO para la Semana 8:
+*   **Patrón AAA (Arrange-Act-Assert):** Todas las pruebas unitarias han sido refactorizadas bajo este estándar industrial para máxima claridad.
+*   **Prueba de Resiliencia:** Inclusión de `ResilienciaRepositoryTest.kt`, que valida determinísticamente que los datos se conservan en la base local tras un fallo simulado de la API.
+*   **GitHub Actions:** CI actualizado para ejecutar la suite completa de **22 tests** con JDK 25.
+
+---
+
+## 4. Diagrama de Arquitectura Híbrida
+```mermaid
+graph TD
+    A[Compose UI] --> B[ViewModel]
+    B --> C[Repository Interface]
+    C --> D[SyncedActividadRepository]
+    D -->|SSOT| E[Room Local DB]
+    D -.->|DTO / Sync| F[Supabase Cloud]
+    E -->|Flow| D
+    D -->|UiState| B
+```
 
 ---
 

@@ -1,6 +1,7 @@
 package com.example.miformacionctma.data.repository
 
 import com.example.miformacionctma.data.local.dao.ActividadDao
+import com.example.miformacionctma.data.remote.dto.toDto
 import com.example.miformacionctma.data.supabaseClient
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
@@ -13,8 +14,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Repositorio híbrido que utiliza Room para funcionamiento Offline
- * y Supabase para persistencia en la nube.
+ * Repositorio híbrido (Offline-First) que coordina Room y Supabase.
+ * Implementa resiliencia y separación de modelos (Semana 8).
  */
 class SyncedActividadRepository(
     private val dao: ActividadDao,
@@ -32,18 +33,19 @@ class SyncedActividadRepository(
 
     override suspend fun guardar(actividad: ActividadFormativa) {
         withContext(Dispatchers.IO) {
-            // 1. Guardado local (Room) - Obtenemos el ID generado
+            // 1. Persistencia Local (SSOT)
             val generatedId = dao.insertar(actividad.toEntity(competenciaId = 1L))
-            
-            // Creamos una copia de la actividad con el ID real para la nube
-            val actividadConId = actividad.copy(id = generatedId)
+            val actividadFinal = actividad.copy(id = generatedId)
 
-            // 2. Sincronización en la nube (Supabase) - Operación de fondo
+            // 2. Sincronización Remota Resiliente
             scope.launch {
                 try {
-                    supabaseClient.from("actividades").upsert(actividadConId)
+                    // Convertimos a DTO antes de enviar a la nube
+                    val dto = actividadFinal.toDto()
+                    supabaseClient.from("actividades").upsert(dto)
                 } catch (e: Exception) {
-                    android.util.Log.e("SyncedRepo", "Error al sincronizar con Supabase", e)
+                    // Si falla la red, el dato sigue a salvo en Room (Resiliencia)
+                    android.util.Log.e("SyncedRepo", "Fallo de sincronización remota: ${e.message}")
                 }
             }
         }
@@ -51,8 +53,10 @@ class SyncedActividadRepository(
 
     override suspend fun eliminar(id: Long): Boolean {
         return withContext(Dispatchers.IO) {
+            // 1. Eliminar localmente
             val result = dao.eliminarPorId(id) == 1
             if (result) {
+                // 2. Intentar eliminar en la nube
                 scope.launch {
                     try {
                         supabaseClient.from("actividades").delete {
@@ -61,7 +65,7 @@ class SyncedActividadRepository(
                             }
                         }
                     } catch (e: Exception) {
-                        android.util.Log.e("SyncedRepo", "Error al eliminar en Supabase", e)
+                        android.util.Log.e("SyncedRepo", "Error al eliminar en la nube: ${e.message}")
                     }
                 }
             }
