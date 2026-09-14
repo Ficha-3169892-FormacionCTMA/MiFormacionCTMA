@@ -25,13 +25,14 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
@@ -43,16 +44,30 @@ room3 {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    coreLibraryDesugaring(libs.desugar.jdk)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
+    
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    
+    implementation(libs.androidx.icons.core)
+    implementation(libs.androidx.icons.extended)
+    
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // Supabase
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.storage)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
 
     // Room 3
     implementation(libs.androidx.room3.runtime)
@@ -63,15 +78,18 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
-    testImplementation("org.mockito:mockito-core:5.12.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.androidx.room3.testing)
+    
+    debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation("androidx.navigation:navigation-compose:2.8.0")
 }

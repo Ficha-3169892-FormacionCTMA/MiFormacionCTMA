@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 class ActividadDaoTest {
     private lateinit var db: FormacionDatabase
     private lateinit var dao: ActividadDao
-    private lateinit var competenciaDao: com.example.miformacionctma.data.local.dao.CompetenciaDao
+    private lateinit var competenciaDao: CompetenciaDao
 
     @Before
     fun crearDb() {
@@ -49,7 +49,7 @@ class ActividadDaoTest {
             prioridad = "ALTA",
             competenciaId = 1L,
             fechaLimiteEpochMillis = System.currentTimeMillis() + 86400000,
-            completada = false
+            completada = false,
         )
 
         dao.insertar(actividad)
@@ -72,7 +72,7 @@ class ActividadDaoTest {
             prioridad = "ALTA",
             competenciaId = 1L,
             fechaLimiteEpochMillis = System.currentTimeMillis() + 86400000,
-            completada = false
+            completada = false,
         )
 
         dao.insertar(actividad)

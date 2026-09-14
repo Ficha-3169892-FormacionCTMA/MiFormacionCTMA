@@ -15,12 +15,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
+import com.example.miformacionctma.ui.states.OperacionUiState
+import java.time.LocalDate
+import java.util.Locale
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaCrearActividad(
+    operacionUiState: OperacionUiState,
     onActividadGuardada: (titulo: String, descripcion: String, progreso: Int, prioridad: Prioridad, fechaMillis: Long) -> Unit,
-    onVolverClick: () -> Unit
+    onVolverClick: () -> Unit,
 ) {
     var titulo by rememberSaveable { mutableStateOf("") }
     var descripcion by rememberSaveable { mutableStateOf("") }
@@ -29,8 +34,7 @@ fun PantallaCrearActividad(
     var fechaSeleccionadaMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var intentoGuardar by rememberSaveable { mutableStateOf(false) }
     
-    var guardando by remember { mutableStateOf(false) }
-    var mostrarDatePicker by remember { mutableStateOf(false) }
+    val showDatePickerState = remember { mutableStateOf(false) }
 
     val uiState = FormularioActividadUiState(
         titulo = titulo,
@@ -41,22 +45,34 @@ fun PantallaCrearActividad(
         intentoGuardar = intentoGuardar,
         tituloError = if (intentoGuardar) ReglasActividad.validarTitulo(titulo, true) else null,
         descripcionError = if (intentoGuardar || (descripcion.length > 240)) ReglasActividad.validarDescripcion(descripcion) else null,
-        fechaError = if (intentoGuardar) ReglasActividad.validarFecha(fechaSeleccionadaMillis) else null
+        fechaError = if (intentoGuardar) ReglasActividad.validarFecha(fechaSeleccionadaMillis) else null,
     )
 
-    if (mostrarDatePicker) {
-        val datePickerState = rememberDatePickerState()
+    if (showDatePickerState.value) {
+        val datePickerState = rememberDatePickerState(
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    // Bloquea fechas pasadas (HU 09)
+                    val hoyMillis = LocalDate.now(ZoneId.systemDefault())
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+                    return utcTimeMillis >= hoyMillis
+                }
+            }
+        )
+
         DatePickerDialog(
-            onDismissRequest = { mostrarDatePicker = false },
+            onDismissRequest = { showDatePickerState.value = false },
             confirmButton = {
                 TextButton(onClick = {
                     fechaSeleccionadaMillis = datePickerState.selectedDateMillis
-                    mostrarDatePicker = false
+                    showDatePickerState.value = false
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDatePicker = false }) { Text("Cancelar") }
-            }
+                TextButton(onClick = { showDatePickerState.value = false }) { Text("Cancelar") }
+            },
         ) {
             DatePicker(state = datePickerState)
         }
@@ -70,35 +86,41 @@ fun PantallaCrearActividad(
                     IconButton(onClick = onVolverClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
             )
         }
     ) { innerPadding ->
-        FormularioActividad(
-            uiState = uiState,
-            onTituloChange = { titulo = it },
-            onDescripcionChange = { descripcion = it },
-            onProgresoChange = { progreso = it },
-            onPrioridadChange = { prioridad = it },
-            onFechaClick = { mostrarDatePicker = true },
-            onGuardarClick = {
-                if (!guardando) {
+        Column(modifier = Modifier.padding(innerPadding)) {
+            if (operacionUiState is OperacionUiState.Fallida) {
+                Text(
+                    text = operacionUiState.mensaje,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            
+            FormularioActividad(
+                uiState = uiState,
+                onTituloChange = { titulo = it },
+                onDescripcionChange = { descripcion = it },
+                onProgresoChange = { progreso = it },
+                onPrioridadChange = { prioridad = it },
+                onFechaClick = { showDatePickerState.value = true },
+                onGuardarClick = {
                     intentoGuardar = true
                     if (uiState.puedeGuardar) {
-                        guardando = true
                         onActividadGuardada(
                             titulo.trim(), 
                             descripcion.trim(), 
                             progreso, 
                             prioridad,
-                            fechaSeleccionadaMillis!!
+                            fechaSeleccionadaMillis!!,
                         )
                     }
-                }
-            },
-            modifier = Modifier.padding(innerPadding),
-            estaGuardando = guardando
-        )
+                },
+                estaGuardando = operacionUiState is OperacionUiState.EnCurso,
+            )
+        }
     }
 }
 
@@ -113,14 +135,14 @@ fun FormularioActividad(
     onFechaClick: () -> Unit,
     onGuardarClick: () -> Unit,
     modifier: Modifier = Modifier,
-    estaGuardando: Boolean = false
+    estaGuardando: Boolean = false,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         OutlinedTextField(
             value = uiState.titulo,
@@ -138,7 +160,7 @@ fun FormularioActividad(
                 }
             },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         )
 
         OutlinedTextField(
@@ -156,7 +178,7 @@ fun FormularioActividad(
                 }
             },
             minLines = 3,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         )
 
         // Selección de Prioridad
@@ -164,7 +186,7 @@ fun FormularioActividad(
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = it },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             OutlinedTextField(
                 value = uiState.prioridad.name,
@@ -174,12 +196,12 @@ fun FormularioActividad(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
             )
             ExposedDropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onDismissRequest = { expanded = false },
             ) {
                 Prioridad.entries.forEach { p ->
                     DropdownMenuItem(
@@ -188,7 +210,7 @@ fun FormularioActividad(
                             onPrioridadChange(p)
                             expanded = false
                         },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                     )
                 }
             }
@@ -196,7 +218,7 @@ fun FormularioActividad(
 
         // Selección de Fecha
         val fechaTexto = uiState.fechaSeleccionadaMillis?.let {
-            java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(it))
+            java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(java.util.Date(it))
         } ?: "Seleccionar fecha límite"
         
         OutlinedCard(
@@ -204,12 +226,12 @@ fun FormularioActividad(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.outlinedCardColors(
                 containerColor = if (uiState.fechaError != null) 
-                    MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface
-            )
+                    MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface,
+            ),
         ) {
             Row(
                 modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(text = fechaTexto, modifier = Modifier.weight(1f))
                 Text(text = "📅", style = MaterialTheme.typography.headlineSmall)
@@ -220,18 +242,18 @@ fun FormularioActividad(
                 text = uiState.fechaError,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 16.dp)
+                modifier = Modifier.padding(start = 16.dp),
             )
         }
 
-        // Selector de Progreso
+        // Selector de Progreso (HU 11)
         Text(text = "Progreso Inicial: ${uiState.progreso}%", style = MaterialTheme.typography.titleMedium)
         Slider(
             value = uiState.progreso.toFloat(),
             onValueChange = { onProgresoChange(it.toInt()) },
             valueRange = 0f..100f,
             steps = 10,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -239,12 +261,12 @@ fun FormularioActividad(
         Button(
             onClick = onGuardarClick,
             modifier = Modifier.fillMaxWidth(),
-            enabled = (!uiState.intentoGuardar || uiState.puedeGuardar) && !estaGuardando
+            enabled = (!uiState.intentoGuardar || uiState.puedeGuardar) && !estaGuardando,
         ) {
             if (estaGuardando) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
                 Text("Guardar Actividad")

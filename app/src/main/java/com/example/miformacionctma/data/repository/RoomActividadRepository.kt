@@ -2,11 +2,13 @@ package com.example.miformacionctma.data.repository
 
 import com.example.miformacionctma.data.local.dao.ActividadDao
 import com.example.miformacionctma.data.local.entities.ActividadEntity
+import com.example.miformacionctma.data.local.entities.EvidenciaEntity
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.util.Calendar
 
@@ -23,14 +25,16 @@ class RoomActividadRepository(
     override fun buscar(texto: String): Flow<List<ActividadFormativa>> =
         dao.buscar(texto).map { entities -> entities.map { it.toDomain() } }
 
-    override suspend fun guardar(actividad: ActividadFormativa) {
-        // En un caso real, la competenciaId vendría del modelo de dominio.
-        // Aquí usamos 1 como valor por defecto si no existe en el dominio.
-        dao.insertar(actividad.toEntity(competenciaId = 1L))
+    override suspend fun guardar(actividad: ActividadFormativa): Long {
+        return dao.insertar(actividad.toEntity(competenciaId = 1L))
     }
 
     override suspend fun eliminar(id: Long): Boolean =
         dao.eliminarPorId(id) == 1
+
+    override fun observarEvidencias(actividadId: Long): Flow<List<EvidenciaEntity>> = flowOf(emptyList())
+
+    override suspend fun guardarEvidencia(evidencia: EvidenciaEntity) {}
 }
 
 // Mapeadores
@@ -51,7 +55,9 @@ fun ActividadEntity.toDomain(): ActividadFormativa {
         progreso = progreso,
         diasRestantes = dias,
         prioridad = Prioridad.valueOf(prioridad),
-        estado = ReglasActividad.obtenerEstado(progreso, dias)
+        estado = ReglasActividad.obtenerEstado(progreso, dias),
+        horas = horas,
+        enlaceEvidencia = enlaceEvidencia,
     )
 }
 
@@ -73,6 +79,8 @@ fun ActividadFormativa.toEntity(competenciaId: Long): ActividadEntity {
         prioridad = prioridad.name,
         competenciaId = competenciaId,
         fechaLimiteEpochMillis = fechaLimite,
-        completada = progreso >= 100
+        completada = progreso >= 100,
+        horas = horas,
+        enlaceEvidencia = enlaceEvidencia,
     )
 }

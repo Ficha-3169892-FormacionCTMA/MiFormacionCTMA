@@ -1,0 +1,38 @@
+name: Android CI - Mi Formación CTMA
+
+on:
+  push:
+    branches: [ "main", "develop", "feat/Thomas", "feature/semana-07-coroutines-flow" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Dar permisos de ejecución al Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: Compilar proyecto (Build)
+        run: ./gradlew assembleDebug
+
+      - name: Ejecutar Tests Unitarios (HU 05 - HU 08)
+        run: ./gradlew :app:testDebugUnitTest
+
+      - name: Subir reporte de tests en caso de fallo
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: app/build/reports/tests/testDebugUnitTest/
