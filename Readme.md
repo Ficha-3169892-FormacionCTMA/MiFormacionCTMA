@@ -1,91 +1,85 @@
-﻿# Informe de Desarrollo: Mi Formación CTMA
+﻿## Informe de Desarrollo: Mi Formación CTMA
 
-## Actividad: Desarrollo de Aplicación Móvil con Jetpack Compose y Persistencia Local
+## Actividad: Desarrollo de Aplicación Móvil con Resiliencia y Servicios Cloud
 **Responsable Técnico:** Wilson Castro Gil  
 **Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
-**Rama Principal de Trabajo:** `feat/persistencia-room`  
+**Rama Principal de Trabajo:** `feature/semana-08-cloud-resilience`  
 **Scrum Master:** Thomas
 
 ---
 
-## 1. Contexto del Proyecto
-"Mi Formación CTMA" es una solución móvil profesional diseñada bajo el paradigma de desarrollo moderno en Android. Su propósito es la gestión eficiente de compromisos formativos, permitiendo el seguimiento de progreso, priorización mediante lógica de colores y persistencia de datos a largo plazo en un entorno académico y profesional.
+## 1. Contexto del Proyecto (Semana 8)
+En esta fase, "Mi Formación CTMA" alcanza su madurez en la gestión de datos mediante la integración de **servicios en la nube (Supabase)** y la implementación de patrones de **resiliencia**. El enfoque central es la separación de responsabilidades entre el transporte de red y la lógica de negocio, asegurando que la aplicación sea 100% funcional incluso sin conectividad.
 
 ---
 
-## 2. Arquitectura y Tecnologías (MAD Stack)
-La aplicación sigue una **Arquitectura de Capas (Clean Architecture)** orientada a la mantenibilidad y escalabilidad:
-*   **Lenguaje:** Kotlin 2.0.21 (Compilador K2).
-*   **UI Toolkit:** Jetpack Compose con Material Design 3.
-*   **Gestión de Estado:** ViewModel con StateFlow y flujos reactivos (`Flow`).
-*   **Navegación:** Navigation Compose con Seguridad de Tipos (Type-safe).
-*   **Persistencia Local:** **Room 3.0.2** (SQLite) como fuente única de verdad.
-*   **Preferencias:** **Preferences DataStore 1.2.1** para ajustes del usuario.
-*   **Procesamiento:** Operadores reactivos avanzados (`combine`, `asSequence`).
+## 2. Arquitectura de Datos y Resiliencia (Semana 8)
+Se ha implementado una arquitectura **Offline-First** profesional:
+*   **DTO (Data Transfer Objects):** Creación de `ActividadDto.kt` para desacoplar el contrato de la API (Supabase) del modelo de dominio.
+*   **Repositorio Híbrido:** El `SyncedActividadRepository` actúa como orquestador, priorizando **Room** como Fuente Única de Verdad (SSOT) y sincronizando con la nube de forma asíncrona.
+*   **Manejo de Fallos:** Implementación de bloques try-catch resilientes que permiten que la app continúe operando localmente si el servidor remoto no responde o devuelve errores.
 
 ---
 
-## 3. Implementaciones Detalladas (Semana 6)
-
-### A. Capa de Datos y Fuente Única de Verdad
-*   **Room Database**: Implementación de `FormacionDatabase` con soporte para relaciones 1:N entre Competencias y Actividades.
-*   **Evolución del Esquema**: Gestión de migración segura (Versión 1 ➔ 2) incorporando el estado de completitud sin pérdida de información.
-*   **Repositorios Desacoplados**: Uso de interfaces en la capa de dominio (`ActividadRepository`) implementadas en la capa de datos (`RoomActividadRepository`), aislando la UI de los detalles de almacenamiento.
-
-### B. Funcionalidades de Usuario (HU 05 - HU 08)
-*   **HU 05 - Búsqueda Reactiva**: Filtrado instantáneo por título en la barra superior.
-*   **HU 06 - Priorización Visual**: Tarjetas con chips de colores semánticos (Rojo/Naranja/Azul) según la urgencia.
-*   **HU 07 - Filtrado Persistente**: Segmentación por prioridad que se mantiene tras cerrar la aplicación (DataStore).
-*   **HU 08 - Ordenación Inteligente**: Reordenamiento dinámico por fecha de vencimiento.
-
-### C. Interfaz y Experiencia (UX/UI)
-*   **Layout Adaptable**: Detección de ancho de pantalla para alternar entre lista y cuadrícula.
-*   **Validación de Negocio**: Formulario controlado con reglas puras para fechas, títulos y descripciones.
+## 3. Calidad y Automatización (QA)
+Siguiendo los lineamientos de ADSO para la Semana 8:
+*   **Patrón AAA (Arrange-Act-Assert):** Todas las pruebas unitarias han sido refactorizadas bajo este estándar industrial para máxima claridad.
+*   **Prueba de Resiliencia:** Inclusión de `ResilienciaRepositoryTest.kt`, que valida determinísticamente que los datos se conservan en la base local tras un fallo simulado de la API.
+*   **GitHub Actions:** CI actualizado para ejecutar la suite completa de **22 tests** con JDK 25.
 
 ---
 
-## 4. Aseguramiento de Calidad (QA)
-Se ha implementado una infraestructura de pruebas de nivel industrial:
-*   **Tests Unitarios (ViewModel)**: 13 casos de prueba que validan el 100% de la lógica de filtrado y ordenación.
-*   **Tests de Integración (Room)**: Validación del DAO y procesos de migración de base de datos.
-*   **Estado Final**: **100% de éxito** en la ejecución de la suite de pruebas automatizadas.
-*   **Higiene**: Código libre de advertencias y optimizado para rendimiento de memoria.
-
----
-
-## 5. Diagramas Técnicos
-
-### Arquitectura de Persistencia y Flujo de Datos
+## 4. Diagrama de Arquitectura Híbrida
 ```mermaid
 graph TD
-    A[Compose UI] -->|Eventos| B[ViewModel]
-    B -->|Interfaces| C[Repository]
-    C -->|CRUD Observable| D[Room / SQLite]
-    C -->|Ajustes| E[Preferences DataStore]
-    D -->|Flow| C
-    E -->|Flow| C
-    C -->|UiState Flow| B
-    B -->|State Flow| A
-```
-
-### Ciclo de Navegación
-```mermaid
-graph TD
-    L[ListaRoute] -->|Filtros/Orden| L
-    L -->|Crear| C[CrearRoute]
-    L -->|Ver| D[DetalleRoute]
-    C -->|Guardar| L
-    D -->|Volver| L
+    A[Compose UI] --> B[ViewModel]
+    B --> C[Repository Interface]
+    C --> D[SyncedActividadRepository]
+    D -->|SSOT| E[Room Local DB]
+    D -.->|DTO / Sync| F[Supabase Cloud]
+    E -->|Flow| D
+    D -->|UiState| B
 ```
 
 ---
 
-## 6. Mapeo de Componentes Técnicos
+## 3. Implementaciones Detalladas (Semana 7)
 
-| Componente | Implementación | Propósito Técnico |
-| --- | --- | --- |
-| **Room 3** | `ActividadDao` | Persistencia estructurada y consultas observables. |
-| **DataStore** | `PreferenciasRepository` | Persistencia de estado de UI y filtros. |
-| **ViewModel** | `ActividadesViewModel` | Orquestación de flujos de múltiples repositorios. |
-| **UDF** | Todo el flujo | Asegura una única vía de actualización de estado. |
-| **Type-safe Nav** | `AppNavigation` | Navegación robusta basada en objetos serializables. |
+### A. Gestión de Estado UI (UiState)
+*   **Modelado de Estados**: Implementación de `sealed interface` para `ListadoUiState` (Cargando, Vacio, Contenido, Error) y `OperacionUiState` (Inactiva, EnCurso, Exitosa, Fallida).
+*   **Exposición Segura**: Uso de `stateIn` con la política `SharingStarted.WhileSubscribed(5_000)` para optimizar el uso de recursos y mantener el estado durante cambios de configuración (rotación).
+
+### B. Concurrencia Estructurada
+*   **ViewModelScope**: Todo el trabajo asíncrono de UI se liga al ciclo de vida del ViewModel, garantizando la cancelación automática al cerrar la pantalla.
+*   **Búsqueda Cancelable**: Uso del operador `flatMapLatest` en la barra de búsqueda para cancelar automáticamente consultas obsoletas cuando el usuario escribe rápidamente, priorizando siempre la entrada más reciente.
+*   **Main-Safety**: Las operaciones de escritura (guardar/eliminar) se ejecutan de forma segura sin bloquear la interfaz, comunicando progreso y errores mediante `OperacionUiState`.
+
+### C. Integración Compose y Lifecycle
+*   **Recolección Consciente**: Migración de `collectAsState` a **`collectAsStateWithLifecycle`**, asegurando que la aplicación deje de consumir datos cuando la interfaz no es visible para el usuario.
+
+---
+
+## 4. Validación de Casos de Aceptación (CA)
+
+| Caso | Escenario | Resultado |
+| :--- | :--- | :--- |
+| **CA-01** | Abrir sin actividades | Visualización correcta de `ListadoUiState.Vacio`. |
+| **CA-02** | Insertar actividad | Actualización reactiva instantánea vía Flow de Room. |
+| **CA-03** | Reiniciar con filtros | Restauración exitosa desde DataStore mediante `combine`. |
+| **CA-04** | Búsquedas rápidas | Cancelación de Jobs previos mediante `flatMapLatest`. |
+| **CA-05** | Fallo de repositorio | Captura de excepción y muestra de `ListadoUiState.Error`. |
+| **CA-06** | Salir durante operación | Cancelación automática de la corrutina en `onCleared`. |
+| **CA-07** | Rotación de pantalla | Persistencia del estado gracias a `StateFlow` y `stateIn`. |
+| **CA-08** | Suite de pruebas | 14 tests deterministas ejecutados con `runTest`. |
+
+---
+
+## 5. Aseguramiento de Calidad (QA)
+*   **Pruebas Unitarias**: Suite completa en `ActividadesViewModelTest.kt` validando transiciones de estado y lógica de filtrado/ordenamiento.
+*   **Tiempo Virtual**: Uso exclusivo de `StandardTestDispatcher` y `runTest`, cumpliendo con la prohibición institucional de usar `Thread.sleep`.
+*   **Higiene**: 0 Errores, 0 Warnings críticos.
+
+---
+
+## 6. Reflexión Técnica
+La implementación de flujos reactivos y concurrencia estructurada ha transformado la aplicación en un sistema resiliente. El mayor desafío fue la coordinación de múltiples fuentes de datos (Room y DataStore); el uso del operador `combine` permitió unificar estas fuentes en un único `UiState` coherente, eliminando "estados imposibles" donde la UI mostraba información contradictoria. La migración a `collectAsStateWithLifecycle` garantiza que la app sea responsable con los recursos del sistema (batería/RAM), un estándar indispensable para el desarrollo profesional en 2026.

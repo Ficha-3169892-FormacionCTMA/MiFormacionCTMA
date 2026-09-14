@@ -24,8 +24,8 @@ interface ActividadDao {
     )
     fun buscar(texto: String): Flow<List<ActividadEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertar(actividad: ActividadEntity)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertar(actividad: ActividadEntity): Long
 
     @Update
     suspend fun actualizar(actividad: ActividadEntity)
