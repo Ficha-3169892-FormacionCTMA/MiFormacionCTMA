@@ -43,7 +43,7 @@ class ActividadesApplication : Application() {
         applicationScope.launch {
             // Aseguramos que la competencia base exista
             database.competenciaDao().insertar(
-                CompetenciaEntity(id = 1L, nombre = "Formación Técnica")
+                CompetenciaEntity(id = 1L, nombre = "Formación Técnica"),
             )
 
             val actividadesActuales = actividadRepository.observarTodos().first()

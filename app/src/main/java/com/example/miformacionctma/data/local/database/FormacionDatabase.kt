@@ -1,10 +1,9 @@
 package com.example.miformacionctma.data.local.database
 
 import android.content.Context
-import androidx.room3.Database
-import androidx.room3.Room
-import androidx.room3.RoomDatabase
-import androidx.sqlite.driver.AndroidSQLiteDriver
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.example.miformacionctma.data.local.dao.ActividadDao
 import com.example.miformacionctma.data.local.dao.CompetenciaDao
 import com.example.miformacionctma.data.local.entities.ActividadEntity
@@ -25,11 +24,11 @@ abstract class FormacionDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): FormacionDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder<FormacionDatabase>(
+                val instance = Room.databaseBuilder(
                     context.applicationContext,
+                    FormacionDatabase::class.java,
                     "mi_formacion_ctma.db"
                 )
-                    .setDriver(AndroidSQLiteDriver())
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

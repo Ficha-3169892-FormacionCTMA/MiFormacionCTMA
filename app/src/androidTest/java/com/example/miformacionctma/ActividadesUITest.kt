@@ -2,11 +2,13 @@ package com.example.miformacionctma
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.example.miformacionctma.data.Actividad
+import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.EstadoActividad
+import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.ui.screens.PantallaActividades
+import com.example.miformacionctma.ui.states.ListadoUiState
 import org.junit.Rule
 import org.junit.Test
-import java.util.Date
 
 class ActividadesUITest {
 
@@ -16,22 +18,29 @@ class ActividadesUITest {
     @Test
     fun HU02_GestoSwipeALaIzquierda_DebeLlamarAlCallbackEliminar() {
         var actividadEliminada = false
-        val actividadPrueba = Actividad(
-            id = 1,
+        val actividadPrueba = ActividadFormativa(
+            id = 1L,
             titulo = "Tarea para Borrar",
             descripcion = "Prueba de swipe",
-            fechaLimite = Date(),
-            progreso = 0f
+            progreso = 0,
+            diasRestantes = 5,
+            estado = EstadoActividad.PENDIENTE,
+            prioridad = Prioridad.MEDIA,
+            horas = 10
         )
 
         composeTestRule.setContent {
             PantallaActividades(
-                actividades = listOf(actividadPrueba),
-                mostrarFinalizadas = false,
+                listadoUiState = ListadoUiState.Contenido(listOf(actividadPrueba)),
+                searchQuery = "",
+                onSearchChange = {},
+                prioridadSeleccionada = null,
+                onPrioridadFilterClick = {},
+                ordenadoPorVencimiento = false,
+                onSortClick = {},
                 onActividadClick = {},
-                onCrearActividadClick = {},
-                onToggleFinalizadas = {},
-                onDeleteActividad = { actividadEliminada = true }
+                onCrearClick = {},
+                onEliminarActividad = { actividadEliminada = true }
             )
         }
 

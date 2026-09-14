@@ -105,7 +105,7 @@ fun AppNavigation(
                     actividadSeleccionada?.let {
                         viewModel.guardarActividad(
                             it.titulo, it.descripcion ?: "", nuevoProgreso, it.prioridad, 
-                            System.currentTimeMillis() + (it.diasRestantes.toLong() * 24 * 60 * 60 * 1000)
+                            System.currentTimeMillis() + (it.diasRestantes.toLong() * 24 * 60 * 60 * 1000),
                         )
                     }
                 },
@@ -127,12 +127,11 @@ fun AppNavigation(
                 operacionUiState = operacionState,
                 onActividadGuardada = { titulo, descripcion, progreso, prioridad, fechaMillis ->
                     viewModel.guardarActividad(titulo, descripcion, progreso, prioridad, fechaMillis)
-                },
-                onVolverClick = { 
-                    navController.popBackStack()
-                    viewModel.resetOperacion()
-                },
-            )
+                }
+            ) { 
+                navController.popBackStack()
+                viewModel.resetOperacion()
+            }
         }
     }
 }

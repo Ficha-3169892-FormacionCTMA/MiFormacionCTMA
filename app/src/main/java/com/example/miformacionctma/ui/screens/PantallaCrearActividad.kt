@@ -32,9 +32,9 @@ fun PantallaCrearActividad(
     var progreso by rememberSaveable { mutableIntStateOf(0) }
     var prioridad by rememberSaveable { mutableStateOf(Prioridad.MEDIA) }
     var fechaSeleccionadaMillis by rememberSaveable { mutableStateOf<Long?>(null) }
-    var intentoGuardar by rememberSaveable { mutableStateOf(false) }
+    var intentoGuardar by rememberSaveable { mutableStateOf(value = false) }
     
-    val showDatePickerState = remember { mutableStateOf(false) }
+    val showDatePickerState = remember { mutableStateOf(value = false) }
 
     val uiState = FormularioActividadUiState(
         titulo = titulo,
@@ -43,7 +43,7 @@ fun PantallaCrearActividad(
         prioridad = prioridad,
         fechaSeleccionadaMillis = fechaSeleccionadaMillis,
         intentoGuardar = intentoGuardar,
-        tituloError = if (intentoGuardar) ReglasActividad.validarTitulo(titulo, true) else null,
+        tituloError = if (intentoGuardar) ReglasActividad.validarTitulo(titulo, mostrarVacio = true) else null,
         descripcionError = if (intentoGuardar || (descripcion.length > 240)) ReglasActividad.validarDescripcion(descripcion) else null,
         fechaError = if (intentoGuardar) ReglasActividad.validarFecha(fechaSeleccionadaMillis) else null,
     )
@@ -59,16 +59,18 @@ fun PantallaCrearActividad(
                         .toEpochMilli()
                     return utcTimeMillis >= hoyMillis
                 }
-            }
+            },
         )
 
         DatePickerDialog(
             onDismissRequest = { showDatePickerState.value = false },
             confirmButton = {
-                TextButton(onClick = {
-                    fechaSeleccionadaMillis = datePickerState.selectedDateMillis
-                    showDatePickerState.value = false
-                }) { Text("OK") }
+                TextButton(
+                    onClick = {
+                        fechaSeleccionadaMillis = datePickerState.selectedDateMillis
+                        showDatePickerState.value = false
+                    },
+                ) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePickerState.value = false }) { Text("Cancelar") }
@@ -91,11 +93,11 @@ fun PantallaCrearActividad(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
-            if (operacionUiState is OperacionUiState.Fallida) {
+            (operacionUiState as? OperacionUiState.Fallida)?.let {
                 Text(
-                    text = operacionUiState.mensaje,
+                    text = it.mensaje,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
                 )
             }
             
@@ -182,7 +184,7 @@ fun FormularioActividad(
         )
 
         // Selección de Prioridad
-        var expanded by remember { mutableStateOf(false) }
+        var expanded by remember { mutableStateOf(value = false) }
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = it },
@@ -196,7 +198,7 @@ fun FormularioActividad(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
             )
             ExposedDropdownMenu(
@@ -237,9 +239,9 @@ fun FormularioActividad(
                 Text(text = "📅", style = MaterialTheme.typography.headlineSmall)
             }
         }
-        if (uiState.fechaError != null) {
+        uiState.fechaError?.let {
             Text(
-                text = uiState.fechaError,
+                text = it,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = 16.dp),

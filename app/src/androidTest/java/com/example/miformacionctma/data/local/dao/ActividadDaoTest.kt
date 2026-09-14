@@ -1,8 +1,7 @@
 package com.example.miformacionctma.data.local.dao
 
 import android.content.Context
-import androidx.room3.Room
-import androidx.sqlite.driver.AndroidSQLiteDriver
+import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.miformacionctma.data.local.database.FormacionDatabase
@@ -25,9 +24,7 @@ class ActividadDaoTest {
     @Before
     fun crearDb() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder<FormacionDatabase>(context)
-            .setDriver(AndroidSQLiteDriver())
-            .build()
+        db = Room.inMemoryDatabaseBuilder(context, FormacionDatabase::class.java).build()
         dao = db.actividadDao()
         competenciaDao = db.competenciaDao()
     }

@@ -150,7 +150,7 @@ fun PantallaActividades(
                 }
                 is ListadoUiState.Vacio -> {
                     EstadoVacio(
-                        hayFiltros = searchQuery.isNotEmpty() || prioridadSeleccionada != null,
+                        hayFiltros = (searchQuery.isNotEmpty() || prioridadSeleccionada != null),
                         modifier = Modifier.align(Alignment.Center),
                     )
                 }
@@ -163,7 +163,7 @@ fun PantallaActividades(
                                 val result = snackbarHostState.showSnackbar(
                                     message = "Actividad eliminada",
                                     actionLabel = "Deshacer",
-                                    duration = SnackbarDuration.Short
+                                    duration = SnackbarDuration.Short,
                                 )
                                 if (result == SnackbarResult.ActionPerformed) {
                                     onRestaurarActividad(actividad)

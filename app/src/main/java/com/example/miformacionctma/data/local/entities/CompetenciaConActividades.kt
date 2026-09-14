@@ -1,13 +1,13 @@
 package com.example.miformacionctma.data.local.entities
 
-import androidx.room3.Embedded
-import androidx.room3.Relation
+import androidx.room.Embedded
+import androidx.room.Relation
 
 data class CompetenciaConActividades(
     @Embedded val competencia: CompetenciaEntity,
     @Relation(
-        parentColumns = ["id"],
-        entityColumns = ["competenciaId"],
+        parentColumn = "id",
+        entityColumn = "competenciaId",
     )
     val actividades: List<ActividadEntity>
 )
