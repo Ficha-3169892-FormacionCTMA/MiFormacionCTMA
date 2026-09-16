@@ -8,6 +8,8 @@ import com.example.miformacionctma.data.local.database.FormacionDatabase
 import com.example.miformacionctma.data.local.entities.CompetenciaEntity
 import com.example.miformacionctma.data.repository.DataStorePreferenciasRepository
 import com.example.miformacionctma.data.repository.SyncedActividadRepository
+import com.example.miformacionctma.data.remote.EvidenciaApiService
+import com.example.miformacionctma.data.repository.EvidenciaRepository
 import com.example.miformacionctma.data.repository.dataStore
 import com.example.miformacionctma.data.repository.toEntity
 import com.example.miformacionctma.domain.MockData
@@ -16,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 class ActividadesApplication : Application() {
@@ -24,6 +28,21 @@ class ActividadesApplication : Application() {
 
     // Contenedor manual para inyección de dependencias simple
     val database: FormacionDatabase by lazy { FormacionDatabase.getDatabase(this) }
+    
+    val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.API_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    
+    val evidenciaApiService: EvidenciaApiService by lazy {
+        retrofit.create(EvidenciaApiService::class.java)
+    }
+
+    val evidenciaRepository: EvidenciaRepository by lazy {
+        EvidenciaRepository(this, database.evidenciaDao(), evidenciaApiService)
+    }
     
     val actividadRepository: SyncedActividadRepository by lazy {
         SyncedActividadRepository(database.actividadDao(), applicationScope)
@@ -35,22 +54,34 @@ class ActividadesApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        prepoblarBaseDeDatos()
+        rellenarDatosParaPrueba()
         iniciarNotificaciones()
     }
 
-    private fun prepoblarBaseDeDatos() {
+    private fun rellenarDatosParaPrueba() {
         applicationScope.launch {
-            val actividadesExistentes = actividadRepository.observarTodos().first()
-            if (actividadesExistentes.isEmpty()) {
-                // 1. Insertar competencia por defecto para cumplir con la FK
-                database.competenciaDao().insertar(
-                    CompetenciaEntity(id = 1L, nombre = "Formación Técnica")
-                )
+            // Aseguramos que la competencia base exista
+            database.competenciaDao().insertar(
+                CompetenciaEntity(id = 1L, nombre = "Formación Técnica")
+            )
 
-                // 2. Insertar las 10 actividades de MockData
-                MockData.listaActividades.forEach { actividad ->
-                    database.actividadDao().insertar(actividad.toEntity(competenciaId = 1L))
+            val actividadesActuales = actividadRepository.observarTodos().first()
+            
+            // Si hay menos de 10, intentamos recuperar de la nube primero
+            if (actividadesActuales.size < 10) {
+                actividadRepository.sincronizarDesdeNube()
+                
+                // Volvemos a revisar tras la descarga
+                val actividadesRecuperadas = actividadRepository.observarTodos().first()
+                
+                // Si tras la nube aún faltan (app nueva/sin internet), rellenamos con MockData
+                if (actividadesRecuperadas.size < 10) {
+                    MockData.listaActividades.forEach { actividad ->
+                        val yaExiste = actividadesRecuperadas.any { it.titulo == actividad.titulo }
+                        if (!yaExiste) {
+                            database.actividadDao().insertar(actividad.toEntity(competenciaId = 1L))
+                        }
+                    }
                 }
             }
         }

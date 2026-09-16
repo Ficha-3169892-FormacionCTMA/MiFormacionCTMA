@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import android.net.Uri
 import com.example.miformacionctma.ActividadesApplication
+import com.example.miformacionctma.data.local.entities.EvidenciaEntity
+import com.example.miformacionctma.data.repository.EvidenciaRepository
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import com.example.miformacionctma.domain.PreferenciasRepository
@@ -21,6 +24,7 @@ import kotlinx.coroutines.launch
 class ActividadesViewModel(
     private val actividadRepository: ActividadRepository,
     private val preferenciasRepository: PreferenciasRepository,
+    private val evidenciaRepository: EvidenciaRepository,
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -132,6 +136,34 @@ class ActividadesViewModel(
         _actividadSeleccionadaId.value = id
     }
 
+    fun eliminarActividad(actividad: ActividadFormativa) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            try {
+                actividadRepository.eliminar(actividad.id)
+                _operacion.value = OperacionUiState.Exitosa
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al eliminar")
+            }
+        }
+    }
+
+    fun restaurarActividad(actividad: ActividadFormativa) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            try {
+                actividadRepository.guardar(actividad)
+                _operacion.value = OperacionUiState.Exitosa
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al restaurar")
+            }
+        }
+    }
+
     fun actualizarProgreso(id: Long, nuevoProgreso: Int) {
         viewModelScope.launch {
             _operacion.value = OperacionUiState.EnCurso
@@ -140,7 +172,7 @@ class ActividadesViewModel(
                 flow?.let {
                     val actividadActualizada = it.copy(
                         progreso = nuevoProgreso,
-                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, it.diasRestantes)
+                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, it.diasRestantes),
                     )
                     actividadRepository.guardar(actividadActualizada)
                     _operacion.value = OperacionUiState.Exitosa
@@ -160,6 +192,19 @@ class ActividadesViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val evidencias: StateFlow<List<EvidenciaEntity>> = _actividadSeleccionadaId
+        .flatMapLatest { id ->
+            if (id == null) flowOf(emptyList())
+            else evidenciaRepository.obtenerEvidencias(id)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun adjuntarEvidencia(uri: Uri) {
+        viewModelScope.launch {
+            evidenciaRepository.procesarYSubirEvidencia(_actividadSeleccionadaId.value ?: return@launch, uri)
+        }
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -168,6 +213,7 @@ class ActividadesViewModel(
                 return ActividadesViewModel(
                     application.actividadRepository,
                     application.preferenciasRepository,
+                    application.evidenciaRepository,
                 ) as T
             }
         }

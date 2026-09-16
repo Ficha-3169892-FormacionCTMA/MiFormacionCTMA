@@ -36,6 +36,23 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    flavorDimensions.add("environment")
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/api/\"")
+        }
+        create("stage") {
+            dimension = "environment"
+            buildConfigField("String", "API_BASE_URL", "\"https://stage-api.miformacionctma.com/\"")
+        }
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("String", "API_BASE_URL", "\"https://api.miformacionctma.com/\"")
+        }
     }
 }
 
@@ -62,6 +79,10 @@ dependencies {
     
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.work.runtime.ktx)
+
+    // Retrofit
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
 
     // Supabase
     implementation(libs.supabase.postgrest)

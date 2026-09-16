@@ -1,5 +1,11 @@
 package com.example.miformacionctma
 
+import android.content.ContextWrapper
+import com.example.miformacionctma.data.local.dao.EvidenciaDao
+import com.example.miformacionctma.data.local.entities.EvidenciaEntity
+import com.example.miformacionctma.data.remote.EvidenciaApiService
+import com.example.miformacionctma.data.remote.EvidenciaResponseDto
+import com.example.miformacionctma.data.repository.EvidenciaRepository
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import com.example.miformacionctma.domain.EstadoActividad
@@ -12,12 +18,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -35,6 +44,7 @@ class ActividadesViewModelTest {
 
     private lateinit var fakeActividadRepository: ActividadRepository
     private lateinit var fakePreferenciasRepository: PreferenciasRepository
+    private lateinit var fakeEvidenciaRepository: EvidenciaRepository
     
     private val repoFlow = MutableStateFlow<List<ActividadFormativa>>(emptyList())
     private val prefsFlow = MutableStateFlow(PreferenciasUsuario())
@@ -65,6 +75,23 @@ class ActividadesViewModelTest {
             }
             override suspend fun guardarModoCuadricula(activo: Boolean) {}
         }
+
+        val dummyDao = object : EvidenciaDao {
+            override suspend fun insertarEvidencia(evidencia: EvidenciaEntity): Long = 0L
+            override suspend fun actualizarEvidencia(evidencia: EvidenciaEntity) {}
+            override fun obtenerEvidenciasPorActividad(actividadId: Long): Flow<List<EvidenciaEntity>> =
+                flowOf(emptyList())
+        }
+        val dummyApi = object : EvidenciaApiService {
+            override suspend fun subirEvidencia(actividadId: RequestBody, file: MultipartBody.Part): EvidenciaResponseDto {
+                return EvidenciaResponseDto(0L, "", "", "")
+            }
+        }
+        fakeEvidenciaRepository = EvidenciaRepository(
+            context = ContextWrapper(null),
+            evidenciaDao = dummyDao,
+            apiService = dummyApi
+        )
     }
 
     @After
@@ -74,7 +101,7 @@ class ActividadesViewModelTest {
 
     @Test
     fun `HU05 - Busqueda en Tiempo Real`() = runTest(testDispatcher) {
-        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository)
+        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository, fakeEvidenciaRepository)
         
         val job = launch { viewModel.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle() 
@@ -94,7 +121,7 @@ class ActividadesViewModelTest {
 
     @Test
     fun `HU06 - Visualizacion de Prioridad con Chips`() = runTest(testDispatcher) {
-        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository)
+        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository, fakeEvidenciaRepository)
         val job = launch { viewModel.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -112,7 +139,7 @@ class ActividadesViewModelTest {
 
     @Test
     fun `HU07 - Filtrado por Nivel de Prioridad`() = runTest(testDispatcher) {
-        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository)
+        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository, fakeEvidenciaRepository)
         val job = launch { viewModel.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
         
@@ -132,7 +159,7 @@ class ActividadesViewModelTest {
 
     @Test
     fun `HU08 - Ordenacion por Fecha de Vencimiento`() = runTest(testDispatcher) {
-        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository)
+        val viewModel = ActividadesViewModel(fakeActividadRepository, fakePreferenciasRepository, fakeEvidenciaRepository)
         val job = launch { viewModel.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
         

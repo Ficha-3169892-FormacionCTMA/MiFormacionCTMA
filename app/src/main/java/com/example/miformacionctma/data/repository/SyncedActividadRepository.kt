@@ -1,10 +1,14 @@
 package com.example.miformacionctma.data.repository
 
 import com.example.miformacionctma.data.local.dao.ActividadDao
+import com.example.miformacionctma.data.remote.dto.ActividadDto
+import com.example.miformacionctma.data.remote.dto.toDto
+import com.example.miformacionctma.data.remote.dto.toDomain
 import com.example.miformacionctma.data.supabaseClient
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -13,8 +17,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Repositorio híbrido que utiliza Room para funcionamiento Offline
- * y Supabase para persistencia en la nube.
+ * Repositorio híbrido (Offline-First) que coordina Room y Supabase.
+ * Implementa resiliencia y separación de modelos (Semana 8).
  */
 class SyncedActividadRepository(
     private val dao: ActividadDao,
@@ -30,20 +34,41 @@ class SyncedActividadRepository(
     override fun buscar(texto: String): Flow<List<ActividadFormativa>> =
         dao.buscar(texto).map { entities -> entities.map { it.toDomain() } }
 
+    /**
+     * Descarga todas las actividades de la nube y las guarda en Room.
+     * Esto permite recuperar datos al reinstalar la app o cambiar de dispositivo.
+     */
+    suspend fun sincronizarDesdeNube() {
+        withContext(Dispatchers.IO) {
+            try {
+                val remoteDtos = supabaseClient.from("actividades")
+                    .select()
+                    .decodeList<ActividadDto>()
+                
+                remoteDtos.forEach { dto ->
+                    dao.insertar(dto.toDomain().toEntity(competenciaId = 1L))
+                }
+                android.util.Log.d("SyncedRepo", "📥 RECUPERACIÓN: ${remoteDtos.size} actividades descargadas de Supabase.")
+            } catch (e: Exception) {
+                android.util.Log.e("SyncedRepo", "❌ FALLO RECUPERACIÓN: ${e.message}")
+            }
+        }
+    }
+
     override suspend fun guardar(actividad: ActividadFormativa) {
         withContext(Dispatchers.IO) {
-            // 1. Guardado local (Room) - Obtenemos el ID generado
+            // 1. Persistencia Local (SSOT)
             val generatedId = dao.insertar(actividad.toEntity(competenciaId = 1L))
-            
-            // Creamos una copia de la actividad con el ID real para la nube
-            val actividadConId = actividad.copy(id = generatedId)
+            val actividadFinal = actividad.copy(id = generatedId)
 
-            // 2. Sincronización en la nube (Supabase) - Operación de fondo
+            // 2. Sincronización Remota Resiliente
             scope.launch {
                 try {
-                    supabaseClient.from("actividades").upsert(actividadConId)
+                    val dto = actividadFinal.toDto()
+                    supabaseClient.from("actividades").upsert(dto)
+                    android.util.Log.d("SyncedRepo", "✅ SINCRONIZADO: '${actividadFinal.titulo}' subida a Supabase.")
                 } catch (e: Exception) {
-                    android.util.Log.e("SyncedRepo", "Error al sincronizar con Supabase", e)
+                    android.util.Log.e("SyncedRepo", "❌ ERROR NUBE: Fallo de sincronización remota: ${e.message}")
                 }
             }
         }
@@ -60,8 +85,9 @@ class SyncedActividadRepository(
                                 eq("id", id)
                             }
                         }
+                        android.util.Log.d("SyncedRepo", "🗑️ ELIMINADO: Actividad #$id borrada de Supabase.")
                     } catch (e: Exception) {
-                        android.util.Log.e("SyncedRepo", "Error al eliminar en Supabase", e)
+                        android.util.Log.e("SyncedRepo", "❌ ERROR NUBE: No se pudo eliminar en la nube: ${e.message}")
                     }
                 }
             }
