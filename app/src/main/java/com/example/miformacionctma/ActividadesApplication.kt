@@ -8,6 +8,7 @@ import com.example.miformacionctma.data.local.database.FormacionDatabase
 import com.example.miformacionctma.data.local.entities.CompetenciaEntity
 import com.example.miformacionctma.data.repository.DataStorePreferenciasRepository
 import com.example.miformacionctma.data.repository.SyncedActividadRepository
+import com.example.miformacionctma.data.repository.SyncedEvidenciaRepository
 import com.example.miformacionctma.data.repository.dataStore
 import com.example.miformacionctma.data.repository.toEntity
 import com.example.miformacionctma.domain.MockData
@@ -28,6 +29,10 @@ class ActividadesApplication : Application() {
     val actividadRepository: SyncedActividadRepository by lazy {
         SyncedActividadRepository(database.actividadDao(), applicationScope)
     }
+
+    val evidenciaRepository: SyncedEvidenciaRepository by lazy {
+        SyncedEvidenciaRepository(this, database.evidenciaDao())
+    }
     
     val preferenciasRepository: DataStorePreferenciasRepository by lazy {
         DataStorePreferenciasRepository(dataStore)
@@ -35,7 +40,9 @@ class ActividadesApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // [HU 01] Persistencia con Room Database - Precarga
         rellenarDatosParaPrueba()
+        // [HU 14] Notificaciones de Vencimiento Cercano - Worker
         iniciarNotificaciones()
     }
 

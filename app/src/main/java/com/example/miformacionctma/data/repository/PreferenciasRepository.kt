@@ -21,6 +21,7 @@ class DataStorePreferenciasRepository(private val dataStore: DataStore<Preferenc
         val filtroPrioridad = stringPreferencesKey("filtro_prioridad")
         val ordenadoPorVencimiento = booleanPreferencesKey("ordenado_por_vencimiento")
         val modoCuadricula = booleanPreferencesKey("modo_cuadricula")
+        val notificacionesActivas = booleanPreferencesKey("notificaciones_activas")
     }
 
     override val preferencias: Flow<PreferenciasUsuario> = dataStore.data.map { p ->
@@ -28,6 +29,7 @@ class DataStorePreferenciasRepository(private val dataStore: DataStore<Preferenc
             filtroPrioridad = p[Keys.filtroPrioridad]?.let { Prioridad.valueOf(it) },
             ordenadoPorVencimiento = p[Keys.ordenadoPorVencimiento] ?: false,
             modoCuadricula = p[Keys.modoCuadricula] ?: false,
+            notificacionesActivas = p[Keys.notificacionesActivas] ?: false,
         )
     }
 
@@ -50,6 +52,12 @@ class DataStorePreferenciasRepository(private val dataStore: DataStore<Preferenc
     override suspend fun guardarModoCuadricula(activo: Boolean) {
         dataStore.edit { p ->
             p[Keys.modoCuadricula] = activo
+        }
+    }
+
+    override suspend fun guardarNotificacionesActivas(activas: Boolean) {
+        dataStore.edit { p ->
+            p[Keys.notificacionesActivas] = activas
         }
     }
 }

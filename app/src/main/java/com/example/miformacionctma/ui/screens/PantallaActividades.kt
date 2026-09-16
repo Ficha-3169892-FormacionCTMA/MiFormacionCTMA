@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,10 +51,20 @@ fun PantallaActividades(
     onActualizarActividad: (Long, Int) -> Unit = { _, _ -> },
     onEliminarActividad: (ActividadFormativa) -> Unit = { },
     onRestaurarActividad: (ActividadFormativa) -> Unit = { },
+    onToggleNotifications: (Boolean) -> Unit = { },
+    notificationsEnabled: Boolean = false,
 ) {
     val contexto = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    // Gestión de Permisos de Notificación (HU 14)
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            onToggleNotifications(isGranted)
+        }
+    )
 
     var actividadEdicion by remember { mutableStateOf<ActividadFormativa?>(null) }
     var textoIngresado by remember { mutableStateOf("") }
@@ -64,6 +76,25 @@ fun PantallaActividades(
                 TopAppBar(
                     title = { Text("Mi Formación CTMA") },
                     actions = {
+                        // [HU 14] Notificaciones de Vencimiento Cercano
+                        IconButton(onClick = {
+                            if (!notificationsEnabled) {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    onToggleNotifications(true)
+                                }
+                            } else {
+                                onToggleNotifications(false)
+                            }
+                        }) {
+                            Icon(
+                                imageVector = if (notificationsEnabled) Icons.Default.Notifications else Icons.Default.NotificationsNone,
+                                contentDescription = "Notificaciones",
+                                tint = if (notificationsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        // [HU 08] Ordenación por Fecha de Vencimiento
                         IconButton(onClick = onSortClick) {
                             Icon(
                                 Icons.Default.Menu,
@@ -74,7 +105,7 @@ fun PantallaActividades(
                     },
                 )
 
-                // Barra de Búsqueda
+                // [HU 05] Búsqueda en Tiempo Real
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchChange,
@@ -94,7 +125,7 @@ fun PantallaActividades(
                     shape = MaterialTheme.shapes.medium,
                 )
 
-                // Filtros de Prioridad
+                // [HU 07] Filtrado por Nivel de Prioridad
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -114,6 +145,7 @@ fun PantallaActividades(
                     }
                 }
 
+                // [HU 16] Dashboard de Resumen (Stats)
                 if (listadoUiState is ListadoUiState.Contenido) {
                     if ((searchQuery.isNotEmpty()) || (prioridadSeleccionada != null)) {
                         Text(
@@ -149,6 +181,7 @@ fun PantallaActividades(
                     )
                 }
                 is ListadoUiState.Vacio -> {
+                    // [HU 10] Pantalla de Estado Vacío (Empty State)
                     EstadoVacio(
                         hayFiltros = searchQuery.isNotEmpty() || prioridadSeleccionada != null,
                         modifier = Modifier.align(Alignment.Center),
@@ -202,6 +235,7 @@ fun PantallaActividades(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(
                         onClick = {
+                            // [HU 15] Compartir Resumen de Formación
                             val sendIntent: Intent = Intent().apply {
                                 action = Intent.ACTION_SEND
                                 putExtra(Intent.EXTRA_TEXT, "Logro CTMA: He completado ${actividad.progreso}% de '${actividad.titulo}'.")
@@ -215,6 +249,7 @@ fun PantallaActividades(
                     }
 
                     if (actividad.enlaceEvidencia != null) {
+                        // [HU 13] Apertura de Enlaces de Evidencia
                         TextButton(
                             onClick = {
                                 val browserIntent = Intent(Intent.ACTION_VIEW, actividad.enlaceEvidencia.toUri())

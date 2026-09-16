@@ -2,6 +2,7 @@ package com.example.miformacionctma
 
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
+import com.example.miformacionctma.domain.EvidenciaRepository
 import com.example.miformacionctma.domain.PreferenciasRepository
 import com.example.miformacionctma.domain.PreferenciasUsuario
 import com.example.miformacionctma.ui.viewmodel.ActividadesViewModel
@@ -39,12 +40,20 @@ class PruebasViewModelTest {
         override suspend fun guardarFiltroPrioridad(prioridad: com.example.miformacionctma.domain.Prioridad?) {}
         override suspend fun guardarOrdenadoPorVencimiento(ordenado: Boolean) {}
         override suspend fun guardarModoCuadricula(activo: Boolean) {}
+        override suspend fun guardarNotificacionesActivas(activas: Boolean) {}
+    }
+
+    private val fakeEvidenciaRepository = object : EvidenciaRepository {
+        override fun observarPorActividad(actividadId: Long): Flow<List<com.example.miformacionctma.domain.Evidencia>> = flowOf(emptyList())
+        override suspend fun guardarLocal(actividadId: Long, uri: android.net.Uri): Result<com.example.miformacionctma.domain.Evidencia> = Result.failure(Exception())
+        override suspend fun sincronizar(evidenciaId: String): Result<Unit> = Result.success(Unit)
+        override suspend fun eliminar(evidenciaId: String): Result<Unit> = Result.success(Unit)
     }
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = ActividadesViewModel(fakeRepository, fakePreferenciasRepository)
+        viewModel = ActividadesViewModel(fakeRepository, fakeEvidenciaRepository, fakePreferenciasRepository)
     }
 
     @After

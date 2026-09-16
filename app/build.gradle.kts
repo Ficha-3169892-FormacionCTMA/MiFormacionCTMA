@@ -29,6 +29,25 @@ android {
             )
         }
     }
+
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            buildConfigField("String", "API_BASE_URL", "\"https://cofvvrtqfsmjttgrvvkw.supabase.co\"")
+        }
+        create("stage") {
+            dimension = "environment"
+            applicationIdSuffix = ".stage"
+            buildConfigField("String", "API_BASE_URL", "\"https://cofvvrtqfsmjttgrvvkw.supabase.co\"")
+        }
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("String", "API_BASE_URL", "\"https://cofvvrtqfsmjttgrvvkw.supabase.co\"")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -36,6 +55,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -68,6 +88,7 @@ dependencies {
     implementation(libs.supabase.storage)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
+    implementation(libs.coil.compose)
 
     // Room 3
     implementation(libs.androidx.room3.runtime)

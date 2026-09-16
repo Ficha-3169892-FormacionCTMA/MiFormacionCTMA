@@ -65,6 +65,7 @@ fun PantallaCrearActividad(
         DatePickerDialog(
             onDismissRequest = { showDatePickerState.value = false },
             confirmButton = {
+                // [HU 09] Selector de Fecha (DatePicker)
                 TextButton(onClick = {
                     fechaSeleccionadaMillis = datePickerState.selectedDateMillis
                     showDatePickerState.value = false
@@ -246,7 +247,7 @@ fun FormularioActividad(
             )
         }
 
-        // Selector de Progreso (HU 11)
+        // [HU 11] Control de Progreso Granular (Slider)
         Text(text = "Progreso Inicial: ${uiState.progreso}%", style = MaterialTheme.typography.titleMedium)
         Slider(
             value = uiState.progreso.toFloat(),

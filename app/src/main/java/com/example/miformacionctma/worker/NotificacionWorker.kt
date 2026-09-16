@@ -11,6 +11,9 @@ import com.example.miformacionctma.ActividadesApplication
 import com.example.miformacionctma.domain.ReglasActividad
 import kotlinx.coroutines.flow.first
 
+/**
+ * [HU 14] Notificaciones de Vencimiento Cercano
+ */
 class NotificacionWorker(
     appContext: Context,
     workerParams: WorkerParameters,

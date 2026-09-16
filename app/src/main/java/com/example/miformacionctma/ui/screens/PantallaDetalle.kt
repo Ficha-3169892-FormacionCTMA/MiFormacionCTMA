@@ -1,19 +1,34 @@
 package com.example.miformacionctma.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.domain.Evidencia
 import com.example.miformacionctma.ui.states.OperacionUiState
+import java.io.File
+import java.util.UUID
 
 sealed interface DetalleUiState {
     data object Cargando : DetalleUiState
@@ -26,8 +41,11 @@ sealed interface DetalleUiState {
 @Composable
 fun PantallaDetalle(
     uiState: DetalleUiState,
+    evidencias: List<Evidencia>,
     onVolverClick: () -> Unit,
     onGuardarProgreso: (Int) -> Unit = {},
+    onAdjuntarEvidencia: (Uri) -> Unit = {},
+    onEliminarEvidencia: (String) -> Unit = {},
     operacionUiState: OperacionUiState = OperacionUiState.Inactiva,
 ) {
     Scaffold(
@@ -54,7 +72,10 @@ fun PantallaDetalle(
                 is DetalleUiState.Exito -> {
                     DetalleContenido(
                         actividad = uiState.actividad,
+                        evidencias = evidencias,
                         onGuardarProgreso = onGuardarProgreso,
+                        onAdjuntarEvidencia = onAdjuntarEvidencia,
+                        onEliminarEvidencia = onEliminarEvidencia,
                         estaGuardando = operacionUiState is OperacionUiState.EnCurso
                     )
                 }
@@ -79,11 +100,32 @@ fun PantallaDetalle(
 @Composable
 fun DetalleContenido(
     actividad: ActividadFormativa,
+    evidencias: List<Evidencia>,
     onGuardarProgreso: (Int) -> Unit,
+    onAdjuntarEvidencia: (Uri) -> Unit,
+    onEliminarEvidencia: (String) -> Unit,
     estaGuardando: Boolean,
 ) {
+    val context = LocalContext.current
     var editandoProgreso by remember { mutableStateOf(value = false) }
     var nuevoProgreso by remember { mutableFloatStateOf(actividad.progreso.toFloat()) }
+
+    // [HU 17] Captura con Cámara (FileProvider)
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempPhotoUri != null) {
+            onAdjuntarEvidencia(tempPhotoUri!!)
+        }
+    }
+
+    // [HU 17] Selección con Photo Picker
+    val pickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let(onAdjuntarEvidencia)
+    }
 
     Column(
         modifier = Modifier
@@ -105,7 +147,7 @@ fun DetalleContenido(
 
         Text(text = "Progreso Actual: ${actividad.progreso}%", style = MaterialTheme.typography.titleMedium)
         
-        // Barra visual (HU 11)
+        // [HU 11] Control de Progreso Granular (Slider) - Barra Visual
         LinearProgressIndicator(
             progress = { actividad.progreso / 100f },
             modifier = Modifier
@@ -127,7 +169,6 @@ fun DetalleContenido(
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(text = "Nuevo Progreso: ${nuevoProgreso.toInt()}%", style = MaterialTheme.typography.bodyLarge)
                     
-                    // Slider para control granular (HU 11)
                     Slider(
                         value = nuevoProgreso,
                         onValueChange = { nuevoProgreso = it },
@@ -159,11 +200,80 @@ fun DetalleContenido(
         }
         
         if (actividad.enlaceEvidencia != null) {
+            // [HU 13] Apertura de Enlaces de Evidencia
             OutlinedButton(
                 onClick = { /* Lógica de apertura de link HU 13 */ },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Ver Evidencia")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Evidencias Fotográficas", style = MaterialTheme.typography.titleMedium)
+        
+        HorizontalDivider()
+
+        if (evidencias.isEmpty()) {
+            Text(text = "No hay evidencias adjuntas.", style = MaterialTheme.typography.bodySmall)
+        } else {
+            evidencias.forEach { evidencia ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    AsyncImage(
+                        model = evidencia.localUri,
+                        contentDescription = "Vista previa evidencia",
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Archivo: ${evidencia.id.take(8)}...", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = "Estado: ${evidencia.estado.name}", style = MaterialTheme.typography.labelSmall)
+                    }
+                    IconButton(onClick = { onEliminarEvidencia(evidencia.id) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Botón Photo Picker
+            OutlinedButton(
+                onClick = {
+                    pickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Galería")
+            }
+
+            // Botón Cámara
+            Button(
+                onClick = {
+                    val file = File(context.filesDir, "evidencias").apply { mkdirs() }
+                    val photoFile = File(file, "evidencia_${UUID.randomUUID()}.jpg")
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+                    tempPhotoUri = uri
+                    cameraLauncher.launch(uri)
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Cámara")
             }
         }
     }

@@ -38,6 +38,7 @@ fun AppNavigation(
         val scale = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1.0f)
         scale == 0f
     }
+    // [HU 12] Transiciones de Navegación Animadas
     val animDuration = if (reduceMotion) 0 else 300
 
     val listadoUiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,6 +70,8 @@ fun AppNavigation(
                 onActualizarActividad = viewModel::actualizarProgreso,
                 onEliminarActividad = viewModel::eliminarActividad,
                 onRestaurarActividad = viewModel::restaurarActividad,
+                onToggleNotifications = { /* Lógica de preferencia de notificaciones */ },
+                notificationsEnabled = false // Por defecto
             )
         }
 
@@ -84,6 +87,7 @@ fun AppNavigation(
         ) { backStackEntry ->
             val route: DetalleRoute = backStackEntry.toRoute()
             val actividadSeleccionada by viewModel.actividadSeleccionada.collectAsStateWithLifecycle()
+            val evidencias by viewModel.evidenciasActividadSeleccionada.collectAsStateWithLifecycle()
             val operacionState by viewModel.operacion.collectAsStateWithLifecycle()
 
             LaunchedEffect(key1 = route.actividadId) {
@@ -100,6 +104,7 @@ fun AppNavigation(
 
             PantallaDetalle(
                 uiState = detalleUiState,
+                evidencias = evidencias,
                 onVolverClick = { navController.popBackStack() },
                 onGuardarProgreso = { nuevoProgreso ->
                     actividadSeleccionada?.let {
@@ -109,6 +114,10 @@ fun AppNavigation(
                         )
                     }
                 },
+                onAdjuntarEvidencia = { uri ->
+                    actividadSeleccionada?.let { viewModel.adjuntarEvidencia(it.id, uri) }
+                },
+                onEliminarEvidencia = viewModel::eliminarEvidencia,
                 operacionUiState = operacionState,
             )
         }

@@ -8,6 +8,9 @@ import androidx.compose.ui.unit.dp
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ReglasActividad
 
+/**
+ * [HU 16] Dashboard de Resumen (Stats)
+ */
 @Composable
 fun DashboardStats(actividades: List<ActividadFormativa>, modifier: Modifier = Modifier) {
     val totalActividades = actividades.size

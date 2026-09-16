@@ -1,9 +1,9 @@
-﻿## Informe de Desarrollo: Mi Formación CTMA
+﻿# Informe de Desarrollo: Mi Formación CTMA
 
 ## Actividad: Desarrollo de Aplicación Móvil con Resiliencia y Servicios Cloud
 **Responsable Técnico:** Wilson Castro Gil  
 **Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
-**Rama Principal de Trabajo:** `feature/semana-08-cloud-resilience`  
+**Rama Principal de Trabajo:** `develop`  
 **Scrum Master:** Thomas
 
 ---
@@ -31,19 +31,20 @@ Siguiendo los lineamientos de ADSO para la Semana 8:
 
 ## 4. Diagrama de Arquitectura Híbrida
 ```mermaid
-graph TD
-    A[Compose UI] --> B[ViewModel]
-    B --> C[Repository Interface]
-    C --> D[SyncedActividadRepository]
-    D -->|SSOT| E[Room Local DB]
-    D -.->|DTO / Sync| F[Supabase Cloud]
-    E -->|Flow| D
-    D -->|UiState| B
+graph LR
+    A["Compose UI"] --> B["ViewModel"]
+    B --> C["Repository Interface"]
+    C --> D["SyncedActividadRepository"]
+    D --> E["Room Local DB (SSOT)"]
+    D -.-> F["Supabase Cloud (Sync)"]
+    
+    style E fill:#f9f,stroke:#333,stroke-width:2px
+    style F fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 ---
 
-## 3. Implementaciones Detalladas (Semana 7)
+## 5. Implementaciones Detalladas (Semana 7)
 
 ### A. Gestión de Estado UI (UiState)
 *   **Modelado de Estados**: Implementación de `sealed interface` para `ListadoUiState` (Cargando, Vacio, Contenido, Error) y `OperacionUiState` (Inactiva, EnCurso, Exitosa, Fallida).
@@ -59,7 +60,7 @@ graph TD
 
 ---
 
-## 4. Validación de Casos de Aceptación (CA)
+## 6. Validación de Casos de Aceptación (CA)
 
 | Caso | Escenario | Resultado |
 | :--- | :--- | :--- |
@@ -70,16 +71,9 @@ graph TD
 | **CA-05** | Fallo de repositorio | Captura de excepción y muestra de `ListadoUiState.Error`. |
 | **CA-06** | Salir durante operación | Cancelación automática de la corrutina en `onCleared`. |
 | **CA-07** | Rotación de pantalla | Persistencia del estado gracias a `StateFlow` y `stateIn`. |
-| **CA-08** | Suite de pruebas | 14 tests deterministas ejecutados con `runTest`. |
+| **CA-08** | Suite de pruebas | 22 tests deterministas ejecutados con `runTest`. |
 
 ---
 
-## 5. Aseguramiento de Calidad (QA)
-*   **Pruebas Unitarias**: Suite completa en `ActividadesViewModelTest.kt` validando transiciones de estado y lógica de filtrado/ordenamiento.
-*   **Tiempo Virtual**: Uso exclusivo de `StandardTestDispatcher` y `runTest`, cumpliendo con la prohibición institucional de usar `Thread.sleep`.
-*   **Higiene**: 0 Errores, 0 Warnings críticos.
-
----
-
-## 6. Reflexión Técnica
+## 7. Reflexión Técnica
 La implementación de flujos reactivos y concurrencia estructurada ha transformado la aplicación en un sistema resiliente. El mayor desafío fue la coordinación de múltiples fuentes de datos (Room y DataStore); el uso del operador `combine` permitió unificar estas fuentes en un único `UiState` coherente, eliminando "estados imposibles" donde la UI mostraba información contradictoria. La migración a `collectAsStateWithLifecycle` garantiza que la app sea responsable con los recursos del sistema (batería/RAM), un estándar indispensable para el desarrollo profesional en 2026.

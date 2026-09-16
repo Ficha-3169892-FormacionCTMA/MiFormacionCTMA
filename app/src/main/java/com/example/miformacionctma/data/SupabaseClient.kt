@@ -3,6 +3,7 @@ package com.example.miformacionctma.data
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.storage.Storage
 
 object SupabaseConfig {
     const val URL = "https://cofvvrtqfsmjttgrvvkw.supabase.co"
@@ -14,4 +15,5 @@ val supabaseClient: SupabaseClient = createSupabaseClient(
     supabaseKey = SupabaseConfig.API_KEY
 ) {
     install(Postgrest)
+    install(Storage)
 }

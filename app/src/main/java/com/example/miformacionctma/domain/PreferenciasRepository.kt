@@ -7,4 +7,5 @@ interface PreferenciasRepository {
     suspend fun guardarFiltroPrioridad(prioridad: Prioridad?)
     suspend fun guardarOrdenadoPorVencimiento(ordenado: Boolean)
     suspend fun guardarModoCuadricula(activo: Boolean)
+    suspend fun guardarNotificacionesActivas(activas: Boolean)
 }

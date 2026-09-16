@@ -1,5 +1,6 @@
 package com.example.miformacionctma.ui.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,8 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.miformacionctma.ActividadesApplication
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
+import com.example.miformacionctma.domain.Evidencia
+import com.example.miformacionctma.domain.EvidenciaRepository
 import com.example.miformacionctma.domain.PreferenciasRepository
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
@@ -20,14 +23,17 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActividadesViewModel(
     private val actividadRepository: ActividadRepository,
+    private val evidenciaRepository: EvidenciaRepository,
     private val preferenciasRepository: PreferenciasRepository,
 ) : ViewModel() {
 
+    // [HU 05] Búsqueda en Tiempo Real
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _actividadSeleccionadaId = MutableStateFlow<Long?>(null)
 
+    // [HU 07] Filtrado por Nivel de Prioridad & [HU 08] Ordenación por Fecha de Vencimiento
     val uiState: StateFlow<ListadoUiState> = _searchQuery
         .map { it.trim() }
         .distinctUntilChanged()
@@ -86,6 +92,7 @@ class ActividadesViewModel(
         }
     }
 
+    // [HU 01] Persistencia con Room Database
     fun guardarActividad(
         titulo: String, 
         descripcion: String, 
@@ -128,10 +135,12 @@ class ActividadesViewModel(
         _operacion.value = OperacionUiState.Inactiva
     }
 
+    // [HU 13] Apertura de Enlaces de Evidencia & [HU 15] Compartir Resumen de Formación
     fun seleccionarActividad(id: Long) {
         _actividadSeleccionadaId.value = id
     }
 
+    // [HU 02] Eliminación de Actividades (Swipe-to-Dismiss)
     fun eliminarActividad(actividad: ActividadFormativa) {
         viewModelScope.launch {
             _operacion.value = OperacionUiState.EnCurso
@@ -160,6 +169,7 @@ class ActividadesViewModel(
         }
     }
 
+    // [HU 03] Edición de Actividades Existentes & [HU 11] Control de Progreso Granular
     fun actualizarProgreso(id: Long, nuevoProgreso: Int) {
         viewModelScope.launch {
             _operacion.value = OperacionUiState.EnCurso
@@ -188,6 +198,52 @@ class ActividadesViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val evidenciasActividadSeleccionada: StateFlow<List<Evidencia>> = _actividadSeleccionadaId
+        .flatMapLatest { id ->
+            if (id == null) flowOf(emptyList())
+            else evidenciaRepository.observarPorActividad(id)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // [HU 17] Adjuntar Evidencia (Photo Picker)
+    fun adjuntarEvidencia(actividadId: Long, uri: Uri) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            val result = evidenciaRepository.guardarLocal(actividadId, uri)
+            result.onSuccess { evidencia ->
+                // Intentamos sincronizar inmediatamente
+                sincronizarEvidencia(evidencia.id)
+            }.onFailure { e ->
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al adjuntar")
+            }
+        }
+    }
+
+    // [HU 18] Almacenamiento en la Nube (Supabase Storage)
+    fun sincronizarEvidencia(evidenciaId: String) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            val result = evidenciaRepository.sincronizar(evidenciaId)
+            result.onSuccess {
+                _operacion.value = OperacionUiState.Exitosa
+            }.onFailure { e ->
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error de red")
+            }
+        }
+    }
+
+    fun eliminarEvidencia(evidenciaId: String) {
+        viewModelScope.launch {
+            _operacion.value = OperacionUiState.EnCurso
+            val result = evidenciaRepository.eliminar(evidenciaId)
+            result.onSuccess {
+                _operacion.value = OperacionUiState.Exitosa
+            }.onFailure { e ->
+                _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al eliminar")
+            }
+        }
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -195,6 +251,7 @@ class ActividadesViewModel(
                 val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as ActividadesApplication
                 return ActividadesViewModel(
                     application.actividadRepository,
+                    application.evidenciaRepository,
                     application.preferenciasRepository,
                 ) as T
             }
