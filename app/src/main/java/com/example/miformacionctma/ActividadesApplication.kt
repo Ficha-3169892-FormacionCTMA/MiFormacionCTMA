@@ -8,6 +8,8 @@ import com.example.miformacionctma.data.local.database.FormacionDatabase
 import com.example.miformacionctma.data.local.entities.CompetenciaEntity
 import com.example.miformacionctma.data.repository.DataStorePreferenciasRepository
 import com.example.miformacionctma.data.repository.SyncedActividadRepository
+import com.example.miformacionctma.data.remote.EvidenciaApiService
+import com.example.miformacionctma.data.repository.EvidenciaRepository
 import com.example.miformacionctma.data.repository.dataStore
 import com.example.miformacionctma.data.repository.toEntity
 import com.example.miformacionctma.domain.MockData
@@ -16,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 class ActividadesApplication : Application() {
@@ -24,6 +28,21 @@ class ActividadesApplication : Application() {
 
     // Contenedor manual para inyección de dependencias simple
     val database: FormacionDatabase by lazy { FormacionDatabase.getDatabase(this) }
+    
+    val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.API_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    
+    val evidenciaApiService: EvidenciaApiService by lazy {
+        retrofit.create(EvidenciaApiService::class.java)
+    }
+
+    val evidenciaRepository: EvidenciaRepository by lazy {
+        EvidenciaRepository(this, database.evidenciaDao(), evidenciaApiService)
+    }
     
     val actividadRepository: SyncedActividadRepository by lazy {
         SyncedActividadRepository(database.actividadDao(), applicationScope)
