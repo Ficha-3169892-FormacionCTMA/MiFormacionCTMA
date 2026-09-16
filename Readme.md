@@ -3,12 +3,35 @@
 ## Actividad: Desarrollo de Aplicación Móvil con Resiliencia y Servicios Cloud
 **Responsable Técnico:** Wilson Castro Gil  
 **Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
-**Rama Principal de Trabajo:** `feature/semana-08-cloud-resilience`  
+**Rama Principal de Trabajo:** `feature/Semana-09-Dispositivo-Seguridad`  
 **Scrum Master:** Thomas
 
 ---
 
-## 1. Contexto del Proyecto (Semana 8)
+## 1. Contexto del Proyecto (Semana 9)
+En esta fase, "Mi Formación CTMA" integra capacidades multimedia avanzadas siguiendo los estándares de seguridad de Android Moderno. El objetivo central es permitir que los estudiantes adjunten soportes fotográficos a sus actividades, integrando la captura de cámara y selección de galería con persistencia local y sincronización remota mediante Retrofit.
+
+---
+
+## 2. Gestión de Evidencias Multimedia (Semana 9)
+
+### A. Seguridad y Mínimo Privilegio
+*   **Photo Picker Nativo:** Uso de `ActivityResultContracts.PickVisualMedia()` para acceso a la galería sin requerir permisos globales de almacenamiento.
+*   **Captura Segura con FileProvider:** Implementación de `FileProvider` para delegar la toma de fotografías a la cámara del sistema mediante `content://` URIs, evitando la exposición de rutas de archivos físicos.
+*   **Network Security Config:** Bloqueo estricto de tráfico Cleartext (`cleartextTrafficPermitted="false"`) para entornos de producción, asegurando comunicaciones HTTPS.
+
+### B. Persistencia y Arquitectura
+*   **Relación en Cascada (Room):** Nueva entidad `EvidenciaEntity` vinculada a actividades mediante `ForeignKey.CASCADE`, garantizando la integridad referencial.
+*   **Estados de Sincronización:** Modelo de estados robusto (`LOCAL`, `SUBIENDO`, `SINCRONIZADA`, `FALLIDA`) para una gestión resiliente de la carga de archivos.
+*   **Visualización Integrada:** Implementación de `Intent.ACTION_VIEW` con permisos temporales para permitir al usuario abrir y ver las evidencias directamente desde la aplicación.
+
+### C. Infraestructura de Red y Flavors
+*   **Carga Multipart:** Integración de **Retrofit** para el manejo de archivos segmentados (`MultipartBody.Part`).
+*   **Variantes de Entorno:** Configuración de Flavors (`dev`, `stage`, `prod`) en Gradle para alternar automáticamente entre diferentes URLs base de la API.
+
+---
+
+## 3. Contexto del Proyecto (Semana 8)
 En esta fase, "Mi Formación CTMA" alcanza su madurez en la gestión de datos mediante la integración de **servicios en la nube (Supabase)** y la implementación de patrones de **resiliencia**. El enfoque central es la separación de responsabilidades entre el transporte de red y la lógica de negocio, asegurando que la aplicación sea 100% funcional incluso sin conectividad.
 
 ---
@@ -63,6 +86,11 @@ graph TD
 
 | Caso | Escenario | Resultado |
 | :--- | :--- | :--- |
+| **CA-09** | Captura de Cámara | Generación exitosa de URI vía FileProvider y guardado en Room. |
+| **CA-10** | Photo Picker | Selección de imagen de galería sin necesidad de permisos READ_EXTERNAL. |
+| **CA-11** | Visualización | Apertura de imagen mediante Intent.ACTION_VIEW con permisos temporales. |
+| **CA-12** | Fallo de Red | Transición automática del estado de la evidencia a FALLIDA conservando copia local. |
+| **CA-13** | Permisos Contextuales | Solicitud de POST_NOTIFICATIONS mediante flujo educativo de la Semana 9. |
 | **CA-01** | Abrir sin actividades | Visualización correcta de `ListadoUiState.Vacio`. |
 | **CA-02** | Insertar actividad | Actualización reactiva instantánea vía Flow de Room. |
 | **CA-03** | Reiniciar con filtros | Restauración exitosa desde DataStore mediante `combine`. |

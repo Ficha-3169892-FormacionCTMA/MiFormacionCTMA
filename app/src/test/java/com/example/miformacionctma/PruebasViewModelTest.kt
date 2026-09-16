@@ -1,5 +1,11 @@
 package com.example.miformacionctma
 
+import android.content.ContextWrapper
+import com.example.miformacionctma.data.local.dao.EvidenciaDao
+import com.example.miformacionctma.data.local.entities.EvidenciaEntity
+import com.example.miformacionctma.data.remote.EvidenciaApiService
+import com.example.miformacionctma.data.remote.EvidenciaResponseDto
+import com.example.miformacionctma.data.repository.EvidenciaRepository
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.ActividadRepository
 import com.example.miformacionctma.domain.PreferenciasRepository
@@ -15,6 +21,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -44,7 +52,23 @@ class PruebasViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = ActividadesViewModel(fakeRepository, fakePreferenciasRepository)
+        val dummyDao = object : EvidenciaDao {
+            override suspend fun insertarEvidencia(evidencia: EvidenciaEntity): Long = 0L
+            override suspend fun actualizarEvidencia(evidencia: EvidenciaEntity) {}
+            override fun obtenerEvidenciasPorActividad(actividadId: Long): Flow<List<EvidenciaEntity>> =
+                flowOf(emptyList())
+        }
+        val dummyApi = object : EvidenciaApiService {
+            override suspend fun subirEvidencia(actividadId: RequestBody, file: MultipartBody.Part): EvidenciaResponseDto {
+                return EvidenciaResponseDto(0L, "", "", "")
+            }
+        }
+        val fakeEvidenciaRepository = EvidenciaRepository(
+            context = ContextWrapper(null),
+            evidenciaDao = dummyDao,
+            apiService = dummyApi
+        )
+        viewModel = ActividadesViewModel(fakeRepository, fakePreferenciasRepository, fakeEvidenciaRepository)
     }
 
     @After

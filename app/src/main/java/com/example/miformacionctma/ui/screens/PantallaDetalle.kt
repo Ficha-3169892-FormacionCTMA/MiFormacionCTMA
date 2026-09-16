@@ -1,5 +1,6 @@
 package com.example.miformacionctma.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,9 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.miformacionctma.data.local.entities.EvidenciaEntity
 import com.example.miformacionctma.domain.ActividadFormativa
+import com.example.miformacionctma.ui.components.PanelAdjuntarEvidencia
 import com.example.miformacionctma.ui.states.OperacionUiState
 
 sealed interface DetalleUiState {
@@ -29,6 +31,8 @@ fun PantallaDetalle(
     onVolverClick: () -> Unit,
     onGuardarProgreso: (Int) -> Unit = {},
     operacionUiState: OperacionUiState = OperacionUiState.Inactiva,
+    evidencias: List<EvidenciaEntity> = emptyList(),
+    onUriSelected: (Uri) -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -55,7 +59,9 @@ fun PantallaDetalle(
                     DetalleContenido(
                         actividad = uiState.actividad,
                         onGuardarProgreso = onGuardarProgreso,
-                        estaGuardando = operacionUiState is OperacionUiState.EnCurso
+                        estaGuardando = operacionUiState is OperacionUiState.EnCurso,
+                        evidencias = evidencias,
+                        onUriSelected = onUriSelected
                     )
                 }
                 is DetalleUiState.NoEncontrada -> {
@@ -81,6 +87,8 @@ fun DetalleContenido(
     actividad: ActividadFormativa,
     onGuardarProgreso: (Int) -> Unit,
     estaGuardando: Boolean,
+    evidencias: List<EvidenciaEntity>,
+    onUriSelected: (Uri) -> Unit,
 ) {
     var editandoProgreso by remember { mutableStateOf(value = false) }
     var nuevoProgreso by remember { mutableFloatStateOf(actividad.progreso.toFloat()) }
@@ -147,6 +155,7 @@ fun DetalleContenido(
                             if (estaGuardando) CircularProgressIndicator(modifier = Modifier.size(20.dp))
                             else Text("Guardar")
                         }
+
                         OutlinedButton(
                             onClick = { editandoProgreso = false },
                             modifier = Modifier.weight(1f)
@@ -157,6 +166,15 @@ fun DetalleContenido(
                 }
             }
         }
+
+        // --- INYECCIÓN DE LA SEMANA 9 ---
+        Spacer(modifier = Modifier.height(8.dp))
+        PanelAdjuntarEvidencia(
+            actividadId = actividad.id,
+            evidencias = evidencias,
+            onUriSelected = onUriSelected,
+            modifier = Modifier.fillMaxWidth()
+        )
         
         if (actividad.enlaceEvidencia != null) {
             OutlinedButton(
