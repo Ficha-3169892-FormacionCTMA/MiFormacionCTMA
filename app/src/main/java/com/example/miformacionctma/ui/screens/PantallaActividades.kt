@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
+import com.example.miformacionctma.ui.components.ComponenteRecordatoriosContextual
 import com.example.miformacionctma.ui.components.DashboardStats
 import com.example.miformacionctma.ui.components.TarjetaActividad
 import com.example.miformacionctma.ui.states.ListadoUiState
@@ -260,16 +261,21 @@ fun ContenidoLista(
     onEliminarActividad: (ActividadFormativa) -> Unit,
     onActividadClick: (ActividadFormativa) -> Unit,
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        val esPantallaAncha = maxWidth >= 600.dp
-        if (esPantallaAncha) {
-            CuadriculaActividades(actividades = actividades, onActividadClick = onActividadClick)
-        } else {
-            ListaActividades(
-                actividades = actividades, 
-                onActividadClick = onActividadClick,
-                onEliminarActividad = onEliminarActividad,
-            )
+    Column(modifier = Modifier.fillMaxSize()) {
+        // --- INYECCIÓN DE LA SEMANA 9: RECORDATORIOS CONTEXTUALES M3 ---
+        ComponenteRecordatoriosContextual()
+        
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            val esPantallaAncha = maxWidth >= 600.dp
+            if (esPantallaAncha) {
+                CuadriculaActividades(actividades = actividades, onActividadClick = onActividadClick)
+            } else {
+                ListaActividades(
+                    actividades = actividades, 
+                    onActividadClick = onActividadClick,
+                    onEliminarActividad = onEliminarActividad,
+                )
+            }
         }
     }
 }

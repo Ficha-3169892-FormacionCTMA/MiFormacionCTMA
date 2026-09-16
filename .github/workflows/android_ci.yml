@@ -25,14 +25,14 @@ jobs:
         run: chmod +x gradlew
 
       - name: Compilar proyecto (Build)
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDevDebug
 
       - name: Ejecutar Tests Unitarios (HU 05 - HU 08)
-        run: ./gradlew :app:testDebugUnitTest
+        run: ./gradlew :app:testDevDebugUnitTest
 
       - name: Subir reporte de tests en caso de fallo
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-reports
-          path: app/build/reports/tests/testDebugUnitTest/
+          path: app/build/reports/tests/testDevDebugUnitTest/

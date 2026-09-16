@@ -85,6 +85,7 @@ fun AppNavigation(
             val route: DetalleRoute = backStackEntry.toRoute()
             val actividadSeleccionada by viewModel.actividadSeleccionada.collectAsStateWithLifecycle()
             val operacionState by viewModel.operacion.collectAsStateWithLifecycle()
+            val evidencias by viewModel.evidencias.collectAsStateWithLifecycle()
 
             LaunchedEffect(key1 = route.actividadId) {
                 viewModel.seleccionarActividad(id = route.actividadId.toLongOrNull() ?: -1L)
@@ -110,6 +111,10 @@ fun AppNavigation(
                     }
                 },
                 operacionUiState = operacionState,
+                evidencias = evidencias,
+                onUriSelected = { uri ->
+                    viewModel.adjuntarEvidencia(uri)
+                }
             )
         }
 
