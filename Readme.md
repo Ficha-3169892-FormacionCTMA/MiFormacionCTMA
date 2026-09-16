@@ -3,7 +3,7 @@
 ## Actividad: Desarrollo de Aplicación Móvil con Resiliencia y Servicios Cloud
 **Responsable Técnico:** Wilson Castro Gil  
 **Coordinación de Proyecto:** Equipo de Desarrollo (4 integrantes)  
-**Rama Principal de Trabajo:** `feature/Semana-09-Dispositivo-Seguridad`  
+**Rama Principal de Trabajo:** `Develop`  
 **Scrum Master:** Thomas
 
 ---
