@@ -25,7 +25,7 @@ jobs:
       run: chmod +x ./gradlew
 
     - name: Compilar el proyecto Android (Kotlin)
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDevDebug
 
     - name: Ejecutar Tests Unitarios de Kotlin
-      run: ./gradlew testDebugUnitTest
+      run: ./gradlew testDevDebugUnitTest
