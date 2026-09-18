@@ -53,6 +53,7 @@ class ActividadesViewModelTest {
                 repoFlow.map { lista -> lista.filter { it.titulo.contains(texto, ignoreCase = true) } }
             override suspend fun guardar(actividad: ActividadFormativa) {}
             override suspend fun eliminar(id: Long): Boolean = true
+            override suspend fun actualizarProgreso(id: Long, progreso: Int) {}
         }
         
         fakePreferenciasRepository = object : PreferenciasRepository {
@@ -63,7 +64,12 @@ class ActividadesViewModelTest {
             override suspend fun guardarOrdenadoPorVencimiento(ordenado: Boolean) {
                 prefsFlow.value = prefsFlow.value.copy(ordenadoPorVencimiento = ordenado)
             }
-            override suspend fun guardarModoCuadricula(activo: Boolean) {}
+            override suspend fun guardarModoCuadricula(activo: Boolean) {
+                prefsFlow.value = prefsFlow.value.copy(modoCuadricula = activo)
+            }
+            override suspend fun guardarRecordatoriosActivos(activos: Boolean) {
+                prefsFlow.value = prefsFlow.value.copy(recordatoriosActivos = activos)
+            }
         }
     }
 

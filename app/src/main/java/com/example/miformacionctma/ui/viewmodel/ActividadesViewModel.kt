@@ -12,6 +12,10 @@ import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
 import com.example.miformacionctma.ui.states.ListadoUiState
 import com.example.miformacionctma.ui.states.OperacionUiState
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -87,32 +91,35 @@ class ActividadesViewModel(
     }
 
     fun guardarActividad(
+        id: Long = 0,
         titulo: String, 
         descripcion: String, 
         progreso: Int, 
         prioridad: Prioridad, 
         fechaMillis: Long,
+        horas: Int = 10,
+        enlaceEvidencia: String? = null
     ) {
         viewModelScope.launch {
             _operacion.value = OperacionUiState.EnCurso
             try {
-                val hoy = java.util.Calendar.getInstance().apply {
-                    set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0)
-                    set(java.util.Calendar.MILLISECOND, 0)
-                }.timeInMillis
+                val hoy = LocalDate.now()
+                val fechaObjetivo = Instant.ofEpochMilli(fechaMillis)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
                 
-                val diasRestantes = ((fechaMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
+                val diasRestantes = ChronoUnit.DAYS.between(hoy, fechaObjetivo).toInt()
 
                 val nuevaActividad = ActividadFormativa(
-                    id = 0, // Room generará el ID automáticamente
+                    id = id,
                     titulo = titulo,
                     descripcion = descripcion,
                     progreso = progreso,
                     prioridad = prioridad,
                     diasRestantes = diasRestantes,
                     estado = ReglasActividad.obtenerEstado(progreso, diasRestantes),
+                    horas = horas,
+                    enlaceEvidencia = enlaceEvidencia
                 )
                 actividadRepository.guardar(nuevaActividad)
                 _operacion.value = OperacionUiState.Exitosa
@@ -128,7 +135,7 @@ class ActividadesViewModel(
         _operacion.value = OperacionUiState.Inactiva
     }
 
-    fun seleccionarActividad(id: Long) {
+    fun seleccionarActividad(id: Long?) {
         _actividadSeleccionadaId.value = id
     }
 
@@ -160,24 +167,26 @@ class ActividadesViewModel(
         }
     }
 
+    /**
+     * Actualiza solo el progreso, preservando el resto de campos (incluyendo evidencias).
+     */
     fun actualizarProgreso(id: Long, nuevoProgreso: Int) {
         viewModelScope.launch {
             _operacion.value = OperacionUiState.EnCurso
             try {
-                val flow = actividadRepository.observarPorId(id).first()
-                flow?.let {
-                    val actividadActualizada = it.copy(
-                        progreso = nuevoProgreso,
-                        estado = ReglasActividad.obtenerEstado(nuevoProgreso, it.diasRestantes),
-                    )
-                    actividadRepository.guardar(actividadActualizada)
-                    _operacion.value = OperacionUiState.Exitosa
-                }
+                actividadRepository.actualizarProgreso(id, nuevoProgreso)
+                _operacion.value = OperacionUiState.Exitosa
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _operacion.value = OperacionUiState.Fallida(e.message ?: "Error al actualizar")
             }
+        }
+    }
+
+    fun actualizarRecordatorios(activos: Boolean) {
+        viewModelScope.launch {
+            preferenciasRepository.guardarRecordatoriosActivos(activos)
         }
     }
 

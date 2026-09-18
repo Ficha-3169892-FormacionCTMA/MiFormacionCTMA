@@ -32,6 +32,7 @@ class ActividadesViewModelTest {
         override fun buscar(texto: String): Flow<List<ActividadFormativa>> = flowOf(emptyList())
         override suspend fun guardar(actividad: ActividadFormativa) {}
         override suspend fun eliminar(id: Long): Boolean = true
+        override suspend fun actualizarProgreso(id: Long, progreso: Int) {}
     }
 
     private val fakePreferenciasRepository = object : PreferenciasRepository {
@@ -39,6 +40,7 @@ class ActividadesViewModelTest {
         override suspend fun guardarFiltroPrioridad(prioridad: com.example.miformacionctma.domain.Prioridad?) {}
         override suspend fun guardarOrdenadoPorVencimiento(ordenado: Boolean) {}
         override suspend fun guardarModoCuadricula(activo: Boolean) {}
+        override suspend fun guardarRecordatoriosActivos(activos: Boolean) {}
     }
 
     @Before
@@ -54,6 +56,8 @@ class ActividadesViewModelTest {
 
     @Test
     fun uiState_iniciaConCargando() = runTest {
+        val job = launch { viewModel.uiState.collect() }
         assertTrue(viewModel.uiState.value is ListadoUiState.Cargando)
+        job.cancel()
     }
 }

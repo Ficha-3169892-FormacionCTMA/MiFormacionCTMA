@@ -1,9 +1,18 @@
 package com.example.miformacionctma.ui
 
+import android.Manifest
+import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -14,35 +23,38 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.miformacionctma.ui.screens.*
 import com.example.miformacionctma.ui.states.OperacionUiState
 import com.example.miformacionctma.ui.viewmodel.ActividadesViewModel
+import com.example.miformacionctma.ui.viewmodel.EvidenciaViewModel
 import kotlinx.serialization.Serializable
 
-// Definimos los destinos como objetos o clases serializables
-@Serializable
-object ListaRoute
-
-@Serializable
-data class DetalleRoute(val actividadId: String)
-
-@Serializable
-object CrearRoute
+// Destinos
+@Serializable object ListaRoute
+@Serializable data class DetalleRoute(val actividadId: String)
+@Serializable data class FormularioRoute(val actividadId: String? = null)
 
 @Composable
 fun AppNavigation(
-    viewModel: ActividadesViewModel = viewModel(factory = ActividadesViewModel.Factory),
+    actividadesViewModel: ActividadesViewModel = viewModel(factory = ActividadesViewModel.Factory),
+    evidenciaViewModel: EvidenciaViewModel = viewModel(factory = EvidenciaViewModel.Factory),
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
     
-    // Detección de "Reducir Movimiento" (HU 12)
     val reduceMotion = remember {
         val scale = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1.0f)
         scale == 0f
     }
     val animDuration = if (reduceMotion) 0 else 300
 
-    val listadoUiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val preferencias by viewModel.preferencias.collectAsStateWithLifecycle()
+    val listadoUiState by actividadesViewModel.uiState.collectAsStateWithLifecycle()
+    val searchQuery by actividadesViewModel.searchQuery.collectAsStateWithLifecycle()
+    val preferencias by actividadesViewModel.preferencias.collectAsStateWithLifecycle()
+
+    // Gestión de Permisos de Notificaciones (Semana 9 - Requisito 5)
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        // CA-07: Denegar no bloquea la aplicación.
+    }
 
     NavHost(
         navController = navController,
@@ -54,21 +66,26 @@ fun AppNavigation(
             PantallaActividades(
                 listadoUiState = listadoUiState,
                 searchQuery = searchQuery,
-                onSearchChange = viewModel::buscar,
+                onSearchChange = actividadesViewModel::buscar,
                 prioridadSeleccionada = preferencias.filtroPrioridad,
-                onPrioridadFilterClick = viewModel::filtrarPorPrioridad,
+                onPrioridadFilterClick = actividadesViewModel::filtrarPorPrioridad,
                 ordenadoPorVencimiento = preferencias.ordenadoPorVencimiento,
-                onSortClick = viewModel::alternarOrden,
+                onSortClick = actividadesViewModel::alternarOrden,
                 onActividadClick = { actividad ->
-                    viewModel.seleccionarActividad(id = actividad.id)
+                    actividadesViewModel.seleccionarActividad(id = actividad.id)
                     navController.navigate(route = DetalleRoute(actividadId = actividad.id.toString()))
                 },
-                onCrearClick = {
-                    navController.navigate(route = CrearRoute)
+                onCrearClick = { navController.navigate(route = FormularioRoute()) },
+                onActualizarActividad = actividadesViewModel::actualizarProgreso,
+                onEliminarActividad = actividadesViewModel::eliminarActividad,
+                onRestaurarActividad = actividadesViewModel::restaurarActividad,
+                recordatoriosActivos = preferencias.recordatoriosActivos,
+                onToggleRecordatorios = { activo ->
+                    if (activo && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    actividadesViewModel.actualizarRecordatorios(activo)
                 },
-                onActualizarActividad = viewModel::actualizarProgreso,
-                onEliminarActividad = viewModel::eliminarActividad,
-                onRestaurarActividad = viewModel::restaurarActividad,
             )
         }
 
@@ -83,11 +100,15 @@ fun AppNavigation(
             },
         ) { backStackEntry ->
             val route: DetalleRoute = backStackEntry.toRoute()
-            val actividadSeleccionada by viewModel.actividadSeleccionada.collectAsStateWithLifecycle()
-            val operacionState by viewModel.operacion.collectAsStateWithLifecycle()
+            val idLong = route.actividadId.toLongOrNull() ?: -1L
+            
+            val actividadSeleccionada by actividadesViewModel.actividadSeleccionada.collectAsStateWithLifecycle()
+            val operacionState by actividadesViewModel.operacion.collectAsStateWithLifecycle()
+            val evidencias by evidenciaViewModel.evidenciasPorActividad(idLong).collectAsStateWithLifecycle(initialValue = emptyList())
+            val errorFeedback by evidenciaViewModel.errorFeedback.collectAsStateWithLifecycle()
 
             LaunchedEffect(key1 = route.actividadId) {
-                viewModel.seleccionarActividad(id = route.actividadId.toLongOrNull() ?: -1L)
+                actividadesViewModel.seleccionarActividad(id = idLong)
             }
 
             val detalleUiState = remember(actividadSeleccionada, route.actividadId) {
@@ -100,37 +121,68 @@ fun AppNavigation(
 
             PantallaDetalle(
                 uiState = detalleUiState,
+                evidencias = evidencias,
+                errorFeedback = errorFeedback,
+                onClearError = evidenciaViewModel::clearError,
                 onVolverClick = { navController.popBackStack() },
+                onEditClick = {
+                    navController.navigate(FormularioRoute(actividadId = route.actividadId))
+                },
                 onGuardarProgreso = { nuevoProgreso ->
                     actividadSeleccionada?.let {
-                        viewModel.guardarActividad(
-                            it.titulo, it.descripcion ?: "", nuevoProgreso, it.prioridad, 
-                            System.currentTimeMillis() + (it.diasRestantes.toLong() * 24 * 60 * 60 * 1000),
-                        )
+                        // FIX: Se usa actualizarProgreso en lugar de guardarActividad para evitar duplicados
+                        actividadesViewModel.actualizarProgreso(it.id, nuevoProgreso)
                     }
                 },
+                onAgregarEvidencia = { uri -> evidenciaViewModel.agregarEvidencia(idLong, uri) },
+                onEliminarEvidencia = evidenciaViewModel::eliminarEvidencia,
+                onReintentarEvidencia = evidenciaViewModel::reintentarSubida,
                 operacionUiState = operacionState,
             )
         }
 
-        composable<CrearRoute> {
-            val operacionState by viewModel.operacion.collectAsStateWithLifecycle()
+        composable<FormularioRoute> { backStackEntry ->
+            val route: FormularioRoute = backStackEntry.toRoute()
+            val operacionState by actividadesViewModel.operacion.collectAsStateWithLifecycle()
+            val actividadAEditar by actividadesViewModel.actividadSeleccionada.collectAsStateWithLifecycle()
+
+            LaunchedEffect(route.actividadId) {
+                if (route.actividadId != null) {
+                    actividadesViewModel.seleccionarActividad(route.actividadId.toLong())
+                } else {
+                    actividadesViewModel.seleccionarActividad(null)
+                }
+            }
 
             LaunchedEffect(key1 = operacionState) {
                 if (operacionState is OperacionUiState.Exitosa) {
                     navController.popBackStack()
-                    viewModel.resetOperacion()
+                    actividadesViewModel.resetOperacion()
                 }
             }
 
-            PantallaCrearActividad(
-                operacionUiState = operacionState,
-                onActividadGuardada = { titulo, descripcion, progreso, prioridad, fechaMillis ->
-                    viewModel.guardarActividad(titulo, descripcion, progreso, prioridad, fechaMillis)
+            if (route.actividadId == null || actividadAEditar != null) {
+                PantallaCrearActividad(
+                    actividadAEditar = if (route.actividadId != null) actividadAEditar else null,
+                    operacionUiState = operacionState,
+                    onActividadGuardada = { id, titulo, descripcion, progreso, prioridad, fechaMillis ->
+                        actividadesViewModel.guardarActividad(
+                            id = id,
+                            titulo = titulo,
+                            descripcion = descripcion,
+                            progreso = progreso,
+                            prioridad = prioridad,
+                            fechaMillis = fechaMillis
+                        )
+                    }
+                ) {
+                    navController.popBackStack()
+                    actividadesViewModel.resetOperacion()
                 }
-            ) { 
-                navController.popBackStack()
-                viewModel.resetOperacion()
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
         }
     }

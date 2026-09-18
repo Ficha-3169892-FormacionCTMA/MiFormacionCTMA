@@ -8,7 +8,10 @@ import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.Calendar
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 class RoomActividadRepository(
     private val dao: ActividadDao,
@@ -24,25 +27,26 @@ class RoomActividadRepository(
         dao.buscar(texto).map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun guardar(actividad: ActividadFormativa) {
-        // En un caso real, la competenciaId vendría del modelo de dominio.
-        // Aquí usamos 1 como valor por defecto si no existe en el dominio.
+        // Al usar Upsert en el DAO, si el ID existe se actualiza sin borrar (protegiendo evidencias)
         dao.insertar(actividad.toEntity(competenciaId = 1L))
     }
 
     override suspend fun eliminar(id: Long): Boolean =
         dao.eliminarPorId(id) == 1
+
+    override suspend fun actualizarProgreso(id: Long, progreso: Int) {
+        dao.actualizarProgreso(id, progreso, progreso >= 100)
+    }
 }
 
-// Mapeadores
+// Mapeadores migrados a java.time para consistencia con el ViewModel
 fun ActividadEntity.toDomain(): ActividadFormativa {
-    val hoy = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
+    val hoy = LocalDate.now()
+    val fechaLimite = Instant.ofEpochMilli(fechaLimiteEpochMillis)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate()
     
-    val dias = ((fechaLimiteEpochMillis - hoy) / (1000 * 60 * 60 * 24)).toInt()
+    val dias = ChronoUnit.DAYS.between(hoy, fechaLimite).toInt()
 
     return ActividadFormativa(
         id = id,
@@ -58,14 +62,11 @@ fun ActividadEntity.toDomain(): ActividadFormativa {
 }
 
 fun ActividadFormativa.toEntity(competenciaId: Long): ActividadEntity {
-    val hoy = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
-    
-    val fechaLimite = hoy + (diasRestantes.toLong() * 1000 * 60 * 60 * 24)
+    val hoy = LocalDate.now()
+    val fechaLimite = hoy.plusDays(diasRestantes.toLong())
+        .atStartOfDay(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli()
 
     return ActividadEntity(
         id = id,

@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,6 +51,8 @@ fun PantallaActividades(
     onActualizarActividad: (Long, Int) -> Unit = { _, _ -> },
     onEliminarActividad: (ActividadFormativa) -> Unit = { },
     onRestaurarActividad: (ActividadFormativa) -> Unit = { },
+    recordatoriosActivos: Boolean = false,
+    onToggleRecordatorios: (Boolean) -> Unit = {},
 ) {
     val contexto = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -64,6 +68,13 @@ fun PantallaActividades(
                 TopAppBar(
                     title = { Text("Mi Formación CTMA") },
                     actions = {
+                        IconButton(onClick = { onToggleRecordatorios(!recordatoriosActivos) }) {
+                            Icon(
+                                imageVector = if (recordatoriosActivos) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                                contentDescription = "Recordatorios",
+                                tint = if (recordatoriosActivos) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         IconButton(onClick = onSortClick) {
                             Icon(
                                 Icons.Default.Menu,

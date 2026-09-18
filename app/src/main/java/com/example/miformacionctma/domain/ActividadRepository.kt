@@ -8,4 +8,5 @@ interface ActividadRepository {
     fun buscar(texto: String): Flow<List<ActividadFormativa>>
     suspend fun guardar(actividad: ActividadFormativa)
     suspend fun eliminar(id: Long): Boolean
+    suspend fun actualizarProgreso(id: Long, progreso: Int)
 }

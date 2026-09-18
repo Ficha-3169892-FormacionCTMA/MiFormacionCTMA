@@ -53,6 +53,24 @@ class ResilienciaRepositoryTest {
             flow.value = storage.toList()
             return removed
         }
+
+        override suspend fun obtenerPorId(id: Long): ActividadEntity? = storage.find { it.id == id }
+
+        override suspend fun actualizarProgreso(id: Long, progreso: Int, completada: Boolean) {
+            val index = storage.indexOfFirst { it.id == id }
+            if (index != -1) {
+                storage[index] = storage[index].copy(progreso = progreso, completada = completada)
+                flow.value = storage.toList()
+            }
+        }
+
+        override suspend fun actualizarEnlaceEvidencia(id: Long, enlace: String?) {
+            val index = storage.indexOfFirst { it.id == id }
+            if (index != -1) {
+                storage[index] = storage[index].copy(enlaceEvidencia = enlace)
+                flow.value = storage.toList()
+            }
+        }
     }
 
     @Test

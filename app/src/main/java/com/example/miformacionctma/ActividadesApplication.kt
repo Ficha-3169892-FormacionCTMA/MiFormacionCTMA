@@ -6,16 +6,23 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.miformacionctma.data.local.database.FormacionDatabase
 import com.example.miformacionctma.data.local.entities.CompetenciaEntity
+import com.example.miformacionctma.data.remote.api.EvidenciaApi
 import com.example.miformacionctma.data.repository.DataStorePreferenciasRepository
+import com.example.miformacionctma.data.repository.DefaultEvidenciaRepository
 import com.example.miformacionctma.data.repository.SyncedActividadRepository
 import com.example.miformacionctma.data.repository.dataStore
 import com.example.miformacionctma.data.repository.toEntity
+import com.example.miformacionctma.domain.EvidenciaRepository
 import com.example.miformacionctma.domain.MockData
 import com.example.miformacionctma.worker.NotificacionWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 class ActividadesApplication : Application() {
@@ -31,6 +38,33 @@ class ActividadesApplication : Application() {
     
     val preferenciasRepository: DataStorePreferenciasRepository by lazy {
         DataStorePreferenciasRepository(dataStore)
+    }
+
+    // Semana 9: Configuración de Retrofit y EvidenciaRepository
+    private val retrofit: Retrofit by lazy {
+        val logging = HttpLoggingInterceptor().apply {
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+        }
+        
+        val client = OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.API_BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    val evidenciaRepository: EvidenciaRepository by lazy {
+        DefaultEvidenciaRepository(
+            dao = database.evidenciaDao(),
+            api = retrofit.create(EvidenciaApi::class.java),
+            contentResolver = contentResolver
+        )
     }
 
     override fun onCreate() {

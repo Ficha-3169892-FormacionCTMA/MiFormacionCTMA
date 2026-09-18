@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.miformacionctma.domain.ActividadFormativa
 import com.example.miformacionctma.domain.Prioridad
 import com.example.miformacionctma.domain.ReglasActividad
 import com.example.miformacionctma.ui.states.OperacionUiState
@@ -23,15 +24,27 @@ import java.time.ZoneId
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaCrearActividad(
+    actividadAEditar: ActividadFormativa? = null,
     operacionUiState: OperacionUiState,
-    onActividadGuardada: (titulo: String, descripcion: String, progreso: Int, prioridad: Prioridad, fechaMillis: Long) -> Unit,
+    onActividadGuardada: (id: Long, titulo: String, descripcion: String, progreso: Int, prioridad: Prioridad, fechaMillis: Long) -> Unit,
     onVolverClick: () -> Unit,
 ) {
-    var titulo by rememberSaveable { mutableStateOf("") }
-    var descripcion by rememberSaveable { mutableStateOf("") }
-    var progreso by rememberSaveable { mutableIntStateOf(0) }
-    var prioridad by rememberSaveable { mutableStateOf(Prioridad.MEDIA) }
-    var fechaSeleccionadaMillis by rememberSaveable { mutableStateOf<Long?>(null) }
+    var titulo by rememberSaveable { mutableStateOf(actividadAEditar?.titulo ?: "") }
+    var descripcion by rememberSaveable { mutableStateOf(actividadAEditar?.descripcion ?: "") }
+    var progreso by rememberSaveable { mutableIntStateOf(actividadAEditar?.progreso ?: 0) }
+    var prioridad by rememberSaveable { mutableStateOf(actividadAEditar?.prioridad ?: Prioridad.MEDIA) }
+    
+    val initialFechaMillis = remember(actividadAEditar) {
+        actividadAEditar?.let {
+            LocalDate.now()
+                .plusDays(it.diasRestantes.toLong())
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        }
+    }
+    
+    var fechaSeleccionadaMillis by rememberSaveable { mutableStateOf(initialFechaMillis) }
     var intentoGuardar by rememberSaveable { mutableStateOf(value = false) }
     
     val showDatePickerState = remember { mutableStateOf(value = false) }
@@ -50,6 +63,7 @@ fun PantallaCrearActividad(
 
     if (showDatePickerState.value) {
         val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = fechaSeleccionadaMillis,
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     // Bloquea fechas pasadas (HU 09)
@@ -83,7 +97,7 @@ fun PantallaCrearActividad(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nueva Actividad") },
+                title = { Text(if (actividadAEditar == null) "Nueva Actividad" else "Editar Actividad") },
                 navigationIcon = {
                     IconButton(onClick = onVolverClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -112,6 +126,7 @@ fun PantallaCrearActividad(
                     intentoGuardar = true
                     if (uiState.puedeGuardar) {
                         onActividadGuardada(
+                            actividadAEditar?.id ?: 0L,
                             titulo.trim(), 
                             descripcion.trim(), 
                             progreso, 
